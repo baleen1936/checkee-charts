@@ -274,7 +274,44 @@ new Chart(document.getElementById('cWait'), {{
   }}
 }});
 
-// Card 8: visa entry pie chart (New vs Renewal)
+// Card 8: check date distribution by status
+const statusColors = {{}};
+const palette = ['#4CAF50','#F44336','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
+(DATA.check_dist.statuses || []).forEach((s, i) => {{
+  statusColors[s] = palette[i % palette.length];
+}});
+
+const cdCard = document.createElement('div');
+cdCard.className = 'card';
+cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"></canvas>';
+grid.appendChild(cdCard);
+
+const cd = DATA.check_dist;
+new Chart(document.getElementById('cCD'), {{
+  type: 'bar',
+  data: {{
+    labels: cd.dates,
+    datasets: (cd.statuses || []).map(s => ({{
+      label: s,
+      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+      backgroundColor: statusColors[s],
+      stack: 'stack',
+    }}))
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
+      tooltip: {{ mode: 'index', intersect: false }}
+    }},
+    scales: {{
+      x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
+      y: {{ stacked: true, beginAtZero: true, title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }} }}
+    }}
+  }}
+}});
+
+// Card 9: visa entry pie chart (New vs Renewal)
 const entryCard = document.createElement('div');
 entryCard.className = 'card';
 entryCard.innerHTML = '<h3>Visa Entry Type</h3><div style="position:relative;height:220px"><canvas id="cEntry"></canvas></div>';
@@ -309,43 +346,6 @@ new Chart(document.getElementById('cEntry'), {{
           }}
         }}
       }}
-    }}
-  }}
-}});
-
-// Card 9: check date distribution by status
-const statusColors = {{}};
-const palette = ['#4CAF50','#F44336','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
-(DATA.check_dist.statuses || []).forEach((s, i) => {{
-  statusColors[s] = palette[i % palette.length];
-}});
-
-const cdCard = document.createElement('div');
-cdCard.className = 'card';
-cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"></canvas>';
-grid.appendChild(cdCard);
-
-const cd = DATA.check_dist;
-new Chart(document.getElementById('cCD'), {{
-  type: 'bar',
-  data: {{
-    labels: cd.dates,
-    datasets: (cd.statuses || []).map(s => ({{
-      label: s,
-      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-      backgroundColor: statusColors[s],
-      stack: 'stack',
-    }}))
-  }},
-  options: {{
-    responsive: true,
-    plugins: {{
-      legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
-      tooltip: {{ mode: 'index', intersect: false }}
-    }},
-    scales: {{
-      x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
-      y: {{ stacked: true, beginAtZero: true, title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }} }}
     }}
   }}
 }});
