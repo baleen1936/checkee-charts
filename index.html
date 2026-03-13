@@ -28,7 +28,7 @@
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
-<p class="updated">Last updated: 2026-03-13 07:09 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="updated">Last updated: 2026-03-13 07:17 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <script>
@@ -371,42 +371,42 @@ const consDist   = DATA.consulate_dist || {};
 const consLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
 const consValues = consLabels.map(k => consDist[k]);
 
-// City-vibe pastel mapping — soft tones inspired by each city's character
+// City-vibe pastel mapping — medium-saturation tones inspired by each city's character
 function consPastel(name) {
   const n = name.toLowerCase();
-  if (n.includes('beijing'))            return '#FFCDD2'; // imperial rose
-  if (n.includes('shanghai'))           return '#E1BEE7'; // cosmopolitan mauve
-  if (n.includes('guangzhou'))          return '#FFE0B2'; // cantonese amber
-  if (n.includes('chengdu'))            return '#C8E6C9'; // panda sage
-  if (n.includes('shenyang'))           return '#BBDEFB'; // manchurian sky
-  if (n.includes('wuhan'))              return '#FFF9C4'; // yellow crane gold
-  if (n.includes('chongqing'))          return '#FFCCBC'; // hot-pot terracotta
-  if (n.includes('nanjing'))            return '#D1C4E9'; // ancient-capital lavender
-  if (n.includes('hong kong') || n.includes('hongkong')) return '#FCE4EC'; // neon nights pink
-  if (n.includes('fuzhou'))             return '#B2EBF2'; // coastal cyan
-  if (n.includes('qingdao'))            return '#B2DFDB'; // ocean teal
-  if (n.includes('harbin'))             return '#E0F7FA'; // ice-festival light blue
-  if (n.includes('kunming'))            return '#DCEDC8'; // spring-city blossom green
-  if (n.includes('taipei'))             return '#F8BBD0'; // night-market sakura
-  if (n.includes('seoul'))              return '#F3E5F5'; // k-beauty soft violet
-  if (n.includes('tokyo'))              return '#FCE4EC'; // cherry blossom
-  if (n.includes('osaka'))              return '#FFE0B2'; // takoyaki warm amber
-  if (n.includes('mumbai') || n.includes('bombay')) return '#FFF3E0'; // saffron
-  if (n.includes('delhi') || n.includes('new delhi')) return '#F1F8E9'; // garden green
-  if (n.includes('hyderabad'))          return '#E0F2F1'; // biryani teal
-  if (n.includes('chennai'))            return '#FBE9E7'; // warm spice
-  if (n.includes('kolkata') || n.includes('calcutta')) return '#FFF8E1'; // marigold gold
-  if (n.includes('singapore'))          return '#FFE0B2'; // tropical warmth
-  if (n.includes('bangkok') || n.includes('thailand')) return '#FFF9C4'; // golden temple
-  if (n.includes('manila') || n.includes('philippine')) return '#FCE4EC'; // island pink
-  if (n.includes('london'))             return '#ECEFF1'; // foggy grey-blue
-  if (n.includes('paris'))              return '#EDE7F6'; // parisian lavender
-  if (n.includes('frankfurt'))          return '#F5F5F5'; // clean bauhaus grey
-  if (n.includes('toronto'))            return '#E3F2FD'; // clear lake blue
-  if (n.includes('sydney'))             return '#E0F2F1'; // harbour teal
-  if (n.includes('mexico'))             return '#FFF8E1'; // mariachi gold
-  if (n.includes('lima') || n.includes('peru')) return '#E8F5E9'; // andean green
-  return '#F0F0F0'; // neutral pastel fallback
+  if (n.includes('beijing'))            return '#EF9A9A'; // imperial rose
+  if (n.includes('shanghai'))           return '#CE93D8'; // cosmopolitan mauve
+  if (n.includes('guangzhou'))          return '#FFCC80'; // cantonese amber
+  if (n.includes('chengdu'))            return '#A5D6A7'; // panda sage
+  if (n.includes('shenyang'))           return '#90CAF9'; // manchurian sky
+  if (n.includes('wuhan'))              return '#FFF176'; // yellow crane gold
+  if (n.includes('chongqing'))          return '#FFAB91'; // hot-pot terracotta
+  if (n.includes('nanjing'))            return '#B39DDB'; // ancient-capital lavender
+  if (n.includes('hong kong') || n.includes('hongkong')) return '#F48FB1'; // neon-nights pink
+  if (n.includes('fuzhou'))             return '#80DEEA'; // coastal cyan
+  if (n.includes('qingdao'))            return '#80CBC4'; // ocean teal
+  if (n.includes('harbin'))             return '#81D4FA'; // ice-festival blue
+  if (n.includes('kunming'))            return '#C5E1A5'; // spring-city green
+  if (n.includes('taipei'))             return '#FF80AB'; // night-market sakura
+  if (n.includes('seoul'))              return '#BA68C8'; // k-beauty violet
+  if (n.includes('tokyo'))              return '#F8BBD0'; // cherry blossom
+  if (n.includes('osaka'))              return '#FFA726'; // takoyaki amber
+  if (n.includes('mumbai') || n.includes('bombay')) return '#FFB74D'; // saffron
+  if (n.includes('delhi') || n.includes('new delhi')) return '#AED581'; // garden green
+  if (n.includes('hyderabad'))          return '#4DD0E1'; // biryani teal
+  if (n.includes('chennai'))            return '#FF8A65'; // warm spice coral
+  if (n.includes('kolkata') || n.includes('calcutta')) return '#FFE082'; // marigold
+  if (n.includes('singapore'))          return '#FFD54F'; // tropical gold
+  if (n.includes('bangkok') || n.includes('thailand')) return '#FFD740'; // golden temple
+  if (n.includes('manila') || n.includes('philippine')) return '#F06292'; // island pink
+  if (n.includes('london'))             return '#90A4AE'; // foggy steel
+  if (n.includes('paris'))              return '#FFD180'; // city-of-lights gold
+  if (n.includes('frankfurt'))          return '#B0BEC5'; // bauhaus grey
+  if (n.includes('toronto'))            return '#64B5F6'; // clear lake blue
+  if (n.includes('sydney'))             return '#4DB6AC'; // harbour teal
+  if (n.includes('mexico'))             return '#FFCA28'; // dia-de-los-muertos gold
+  if (n.includes('lima') || n.includes('peru')) return '#C8E6C9'; // andean green
+  return '#B0BEC5'; // neutral fallback
 }
 const consColors = consLabels.map(name => consPastel(name));
 
