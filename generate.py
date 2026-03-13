@@ -228,6 +228,13 @@ def generate_html(data, updated):
 <p class="updated">Last updated: {updated} &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
+<div style="max-width:1400px;margin:0 auto 24px;padding:0 16px">
+  <div class="card">
+    <h3>All Records</h3>
+    <div id="tableCount"></div>
+    <table id="recordsTable"><thead></thead><tbody></tbody></table>
+  </div>
+</div>
 <script>
 const DATA = {data_json};
 const groups = [
