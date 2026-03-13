@@ -48,7 +48,7 @@
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
-<p class="updated">Last updated: 2026-03-13 23:03 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="updated">Last updated: 2026-03-13 23:05 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <div style="max-width:1400px;margin:0 auto 24px;padding:0 16px">
@@ -541,10 +541,10 @@ function renderTable(records) {
     thead.appendChild(tr);
   }
 
-  // Sort indicators
+  // Sort indicators (ci-1 because th[0] is the non-sortable # column)
   thead.querySelectorAll('th').forEach((th, ci) => {
     th.classList.remove('table-sort-asc', 'table-sort-desc');
-    if (ci === tableSortCol)
+    if (ci - 1 === tableSortCol)
       th.classList.add(tableSortDir === 1 ? 'table-sort-asc' : 'table-sort-desc');
   });
 

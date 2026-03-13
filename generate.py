@@ -719,10 +719,10 @@ function renderTable(records) {{
     thead.appendChild(tr);
   }}
 
-  // Sort indicators
+  // Sort indicators (ci-1 because th[0] is the non-sortable # column)
   thead.querySelectorAll('th').forEach((th, ci) => {{
     th.classList.remove('table-sort-asc', 'table-sort-desc');
-    if (ci === tableSortCol)
+    if (ci - 1 === tableSortCol)
       th.classList.add(tableSortDir === 1 ? 'table-sort-asc' : 'table-sort-desc');
   }});
 
