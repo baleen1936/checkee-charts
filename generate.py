@@ -38,27 +38,42 @@ def scrape():
     for row in soup.find_all("tr"):
         cells = row.find_all("td")
         if len(cells) == 11:
-            visa = cells[2].get_text(strip=True)
-            date = cells[8].get_text(strip=True)
+            visa       = cells[2].get_text(strip=True)
+            status     = cells[6].get_text(strip=True)
+            check_date = cells[7].get_text(strip=True)
+            date       = cells[8].get_text(strip=True)
             try:
                 days = int(cells[9].get_text(strip=True))
             except ValueError:
                 continue
             if re.match(r"^\d{4}-\d{2}-\d{2}$", date) and visa and 0 <= days < 2000:
-                records.append({"date": date, "visa": visa, "days": days})
+                records.append({
+                    "date": date,
+                    "visa": visa,
+                    "days": days,
+                    "status": status,
+                    "check_date": check_date,
+                })
     return records
 
 
 def build_data(records):
     dates = sorted(set(r["date"] for r in records))
+    date_min, date_max = dates[0], dates[-1]
 
     counts = defaultdict(lambda: defaultdict(int))
     raw_days = defaultdict(list)
     day_days = defaultdict(list)
+    check_status_counts = defaultdict(lambda: defaultdict(int))  # check_date -> status -> count
+
     for r in records:
         counts[r["visa"]][r["date"]] += 1
         raw_days[r["visa"]].append(r["days"])
         day_days[r["date"]].append(r["days"])
+        # Only include check dates within the same 90-day window
+        cd = r["check_date"]
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", cd) and date_min <= cd <= date_max:
+            check_status_counts[cd][r["status"]] += 1
 
     groups_visas = [["B1", "B2"], ["F1", "F2"], ["H1", "H4"], ["J1", "J2"], ["L1", "L2"], ["O1"]]
     stats = {}
@@ -83,11 +98,26 @@ def build_data(records):
                 max(dl),
             ]
 
+    # Check date distribution: sorted statuses for consistent coloring
+    all_statuses = sorted(set(
+        s for day_s in check_status_counts.values() for s in day_s
+    ))
+    check_dates = sorted(check_status_counts.keys())
+    check_dist = {
+        "dates": check_dates,
+        "statuses": all_statuses,
+        "counts": {
+            s: {cd: check_status_counts[cd].get(s, 0) for cd in check_dates}
+            for s in all_statuses
+        }
+    }
+
     return {
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
         "stats": stats,
         "daily_stats": daily_stats,
+        "check_dist": check_dist,
     }
 
 
@@ -172,7 +202,7 @@ groups.forEach((g, i) => {{
   }});
 }});
 
-// 7th card: waiting days distribution (all visa types combined)
+// Card 7: waiting days distribution
 const waitCard = document.createElement('div');
 waitCard.className = 'card';
 waitCard.innerHTML =
@@ -227,8 +257,7 @@ new Chart(document.getElementById('cWait'), {{
             const d = ctx.label;
             const s = ds[d];
             if (!s) return '';
-            const labels = ['Min: ' + s[1] + 'd', 'Max: ' + s[2] + 'd', 'Avg: ' + s[0] + 'd'];
-            return labels[ctx.datasetIndex];
+            return ['Min: ' + s[1] + 'd', 'Max: ' + s[2] + 'd', 'Avg: ' + s[0] + 'd'][ctx.datasetIndex];
           }}
         }}
       }}
@@ -236,6 +265,43 @@ new Chart(document.getElementById('cWait'), {{
     scales: {{
       x: {{ ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
       y: {{ beginAtZero: false, title: {{ display: true, text: 'Wait Days', font: {{ size: 10 }} }} }}
+    }}
+  }}
+}});
+
+// Card 8: check date distribution by status
+const statusColors = {{}};
+const palette = ['#4CAF50','#F44336','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
+(DATA.check_dist.statuses || []).forEach((s, i) => {{
+  statusColors[s] = palette[i % palette.length];
+}});
+
+const cdCard = document.createElement('div');
+cdCard.className = 'card';
+cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"></canvas>';
+grid.appendChild(cdCard);
+
+const cd = DATA.check_dist;
+new Chart(document.getElementById('cCD'), {{
+  type: 'bar',
+  data: {{
+    labels: cd.dates,
+    datasets: (cd.statuses || []).map(s => ({{
+      label: s,
+      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+      backgroundColor: statusColors[s],
+      stack: 'stack',
+    }}))
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
+      tooltip: {{ mode: 'index', intersect: false }}
+    }},
+    scales: {{
+      x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
+      y: {{ stacked: true, beginAtZero: true, title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }} }}
     }}
   }}
 }});
@@ -250,6 +316,8 @@ if __name__ == "__main__":
     print(f"Found {len(records)} records")
     data = build_data(records)
     print(f"Dates: {data['dates'][0] if data['dates'] else 'none'} → {data['dates'][-1] if data['dates'] else 'none'}")
+    print(f"Statuses found: {data['check_dist']['statuses']}")
+    print(f"Check dates: {len(data['check_dist']['dates'])} days")
     updated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     html = generate_html(data, updated)
     with open("index.html", "w", encoding="utf-8") as f:
