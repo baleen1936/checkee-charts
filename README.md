@@ -24,7 +24,7 @@ Each subplot shows daily case counts (stacked bar) with summary stats: total cas
 ## How it works
 
 1. `generate.py` scrapes checkee.info and produces a self-contained `index.html`
-2. GitHub Actions runs it daily at 8am UTC, commits the updated HTML, and GitHub Pages serves it
+2. GitHub Actions runs it every 2 hours, commits the updated HTML, and GitHub Pages serves it
 
 ## Run locally
 
