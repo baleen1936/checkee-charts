@@ -28,7 +28,7 @@
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
-<p class="updated">Last updated: 2026-03-13 06:56 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="updated">Last updated: 2026-03-13 06:58 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <script>
@@ -173,7 +173,7 @@ function updateAllCharts(records) {
         stack: 'stack',
         order: 1,
       })),
-      cdTotalLine(cd.dates, cd.counts, cd.statuses),
+      cdNormalLine(cd.dates, cd.counts, cd.statuses),
     ];
     cdc.update();
   }
@@ -294,16 +294,34 @@ cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"
 grid.appendChild(cdCard);
 
 const cd = DATA.check_dist;
-function cdTotalLine(dates, counts, statuses) {
+function cdNormalLine(dates, counts, statuses) {
+  const totals = dates.map(d =>
+    (statuses || []).reduce((sum, s) => sum + ((counts[s] || {})[d] || 0), 0)
+  );
+  const N = totals.reduce((a, b) => a + b, 0);
+  if (!N || dates.length < 2) {
+    return { type: 'line', label: 'Normal dist.', data: dates.map(() => 0),
+              borderColor: '#888', backgroundColor: 'transparent',
+              borderWidth: 1.5, pointRadius: 0, fill: false, order: 0 };
+  }
+  // Weighted mean and std dev (using date index as x)
+  const mean = totals.reduce((s, v, i) => s + v * i, 0) / N;
+  const variance = totals.reduce((s, v, i) => s + v * (i - mean) ** 2, 0) / N;
+  const std = Math.sqrt(variance) || 1;
+  // Gaussian PDF scaled so total area ≈ N (bin width = 1 day)
+  const sq2pi = Math.sqrt(2 * Math.PI);
+  const data = dates.map((_, i) =>
+    N * Math.exp(-0.5 * ((i - mean) / std) ** 2) / (std * sq2pi)
+  );
   return {
     type: 'line',
-    label: 'Total',
-    data: dates.map(d => (statuses || []).reduce((sum, s) => sum + ((counts[s] || {})[d] || 0), 0)),
+    label: 'Normal dist.',
+    data,
     borderColor: '#555',
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     pointRadius: 0,
-    tension: 0.4,
+    tension: 0,
     fill: false,
     order: 0,
   };
@@ -320,7 +338,7 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {
         stack: 'stack',
         order: 1,
       })),
-      cdTotalLine(cd.dates, cd.counts, cd.statuses),
+      cdNormalLine(cd.dates, cd.counts, cd.statuses),
     ]
   },
   options: {
