@@ -59,7 +59,6 @@ def scrape():
 
 def build_data(records):
     dates = sorted(set(r["date"] for r in records))
-    date_min, date_max = dates[0], dates[-1]
 
     counts = defaultdict(lambda: defaultdict(int))
     raw_days = defaultdict(list)
@@ -70,9 +69,9 @@ def build_data(records):
         counts[r["visa"]][r["date"]] += 1
         raw_days[r["visa"]].append(r["days"])
         day_days[r["date"]].append(r["days"])
-        # Only include check dates within the same 90-day window
+        # Include all valid check dates regardless of how old they are
         cd = r["check_date"]
-        if re.match(r"^\d{4}-\d{2}-\d{2}$", cd) and date_min <= cd <= date_max:
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", cd):
             check_status_counts[cd][r["status"]] += 1
 
     groups_visas = [["B1", "B2"], ["F1", "F2"], ["H1", "H4"], ["J1", "J2"], ["L1", "L2"], ["O1"]]
