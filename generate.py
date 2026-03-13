@@ -514,8 +514,45 @@ grid.appendChild(entryCard);
 const consDist   = DATA.consulate_dist || {{}};
 const consLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
 const consValues = consLabels.map(k => consDist[k]);
-const consBaseColors = ['#2196F3','#FF9800','#4CAF50','#9C27B0','#F44336','#607D8B','#00BCD4','#795548','#E91E63','#3F51B5','#009688','#FF5722'];
-const consColors = consBaseColors.slice(0, consLabels.length);
+
+// City-vibe pastel mapping — soft tones inspired by each city's character
+function consPastel(name) {{
+  const n = name.toLowerCase();
+  if (n.includes('beijing'))            return '#FFCDD2'; // imperial rose
+  if (n.includes('shanghai'))           return '#E1BEE7'; // cosmopolitan mauve
+  if (n.includes('guangzhou'))          return '#FFE0B2'; // cantonese amber
+  if (n.includes('chengdu'))            return '#C8E6C9'; // panda sage
+  if (n.includes('shenyang'))           return '#BBDEFB'; // manchurian sky
+  if (n.includes('wuhan'))              return '#FFF9C4'; // yellow crane gold
+  if (n.includes('chongqing'))          return '#FFCCBC'; // hot-pot terracotta
+  if (n.includes('nanjing'))            return '#D1C4E9'; // ancient-capital lavender
+  if (n.includes('hong kong') || n.includes('hongkong')) return '#FCE4EC'; // neon nights pink
+  if (n.includes('fuzhou'))             return '#B2EBF2'; // coastal cyan
+  if (n.includes('qingdao'))            return '#B2DFDB'; // ocean teal
+  if (n.includes('harbin'))             return '#E0F7FA'; // ice-festival light blue
+  if (n.includes('kunming'))            return '#DCEDC8'; // spring-city blossom green
+  if (n.includes('taipei'))             return '#F8BBD0'; // night-market sakura
+  if (n.includes('seoul'))              return '#F3E5F5'; // k-beauty soft violet
+  if (n.includes('tokyo'))              return '#FCE4EC'; // cherry blossom
+  if (n.includes('osaka'))              return '#FFE0B2'; // takoyaki warm amber
+  if (n.includes('mumbai') || n.includes('bombay')) return '#FFF3E0'; // saffron
+  if (n.includes('delhi') || n.includes('new delhi')) return '#F1F8E9'; // garden green
+  if (n.includes('hyderabad'))          return '#E0F2F1'; // biryani teal
+  if (n.includes('chennai'))            return '#FBE9E7'; // warm spice
+  if (n.includes('kolkata') || n.includes('calcutta')) return '#FFF8E1'; // marigold gold
+  if (n.includes('singapore'))          return '#FFE0B2'; // tropical warmth
+  if (n.includes('bangkok') || n.includes('thailand')) return '#FFF9C4'; // golden temple
+  if (n.includes('manila') || n.includes('philippine')) return '#FCE4EC'; // island pink
+  if (n.includes('london'))             return '#ECEFF1'; // foggy grey-blue
+  if (n.includes('paris'))              return '#EDE7F6'; // parisian lavender
+  if (n.includes('frankfurt'))          return '#F5F5F5'; // clean bauhaus grey
+  if (n.includes('toronto'))            return '#E3F2FD'; // clear lake blue
+  if (n.includes('sydney'))             return '#E0F2F1'; // harbour teal
+  if (n.includes('mexico'))             return '#FFF8E1'; // mariachi gold
+  if (n.includes('lima') || n.includes('peru')) return '#E8F5E9'; // andean green
+  return '#F0F0F0'; // neutral pastel fallback
+}}
+const consColors = consLabels.map(name => consPastel(name));
 
 chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
   type: 'pie',
