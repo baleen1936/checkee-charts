@@ -277,7 +277,7 @@ new Chart(document.getElementById('cWait'), {{
 // Card 8: visa entry pie chart (New vs Renewal)
 const entryCard = document.createElement('div');
 entryCard.className = 'card';
-entryCard.innerHTML = '<h3>Visa Entry Type</h3><canvas id="cEntry"></canvas>';
+entryCard.innerHTML = '<h3>Visa Entry Type</h3><div style="position:relative;height:220px"><canvas id="cEntry"></canvas></div>';
 grid.appendChild(entryCard);
 
 const entryDist = DATA.entry_dist || {{}};
@@ -297,6 +297,7 @@ new Chart(document.getElementById('cEntry'), {{
   }},
   options: {{
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {{
       legend: {{ position: 'bottom', labels: {{ font: {{ size: 11 }}, padding: 10 }} }},
       tooltip: {{
