@@ -188,7 +188,7 @@ const groups = [
 
 // Status colors (defined early so updateAllCharts can reference them)
 const statusColors = {{}};
-const palette = ['#F06292','#333333','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
+const palette = ['#F8BBD0','#333333','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
 (DATA.check_dist.statuses || []).forEach((s, i) => {{
   statusColors[s] = palette[i % palette.length];
 }});
@@ -435,7 +435,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
 // ── Card 7: check date distribution ──────────────────────────────────────────
 const cdCard = document.createElement('div');
 cdCard.className = 'card';
-cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"></canvas>' +
+cdCard.innerHTML = '<h3>Check Date Distribution (All Visa Types)</h3><canvas id="cCD"></canvas>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">stacked bars = status &nbsp;·&nbsp; curve = normal dist. fit</span></div>';
 grid.appendChild(cdCard);
 
