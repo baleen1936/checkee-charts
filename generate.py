@@ -54,15 +54,13 @@ def build_data(records):
 
     counts = defaultdict(lambda: defaultdict(int))
     raw_days = defaultdict(list)
-    day_visa_days = defaultdict(lambda: defaultdict(list))
+    day_days = defaultdict(list)
     for r in records:
         counts[r["visa"]][r["date"]] += 1
         raw_days[r["visa"]].append(r["days"])
-        day_visa_days[r["visa"]][r["date"]].append(r["days"])
+        day_days[r["date"]].append(r["days"])
 
     groups_visas = [["B1", "B2"], ["F1", "F2"], ["H1", "H4"], ["J1", "J2"], ["L1", "L2"], ["O1"]]
-
-    # Overall stats per group (for footer)
     stats = {}
     for visas in groups_visas:
         all_days = [d for v in visas for d in raw_days[v]]
@@ -74,25 +72,22 @@ def build_data(records):
             "max": max(all_days) if all_days else 0,
         }
 
-    # Per-date waiting day stats for each group: [avg, min, max]
-    gds = {}
-    for visas in groups_visas:
-        key = ",".join(visas)
-        gds[key] = {}
-        for date in dates:
-            dl = [d for v in visas for d in day_visa_days[v][date]]
-            if dl:
-                gds[key][date] = [
-                    round(sum(dl) / len(dl)),
-                    min(dl),
-                    max(dl),
-                ]
+    # Per-day stats across all visa types: [avg, min, max]
+    daily_stats = {}
+    for date in dates:
+        dl = day_days[date]
+        if dl:
+            daily_stats[date] = [
+                round(sum(dl) / len(dl)),
+                min(dl),
+                max(dl),
+            ]
 
     return {
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
         "stats": stats,
-        "gds": gds,
+        "daily_stats": daily_stats,
     }
 
 
@@ -135,6 +130,8 @@ const groups = [
 ];
 
 const grid = document.getElementById('grid');
+
+// 6 visa category subplots
 groups.forEach((g, i) => {{
   const s = DATA.stats[g.visas.join(',')] || {{}};
   const card = document.createElement('div');
@@ -150,92 +147,97 @@ groups.forEach((g, i) => {{
     '</div>';
   grid.appendChild(card);
 
-  const gds = (DATA.gds || {{}})[g.visas.join(',')] || {{}};
-
   new Chart(document.getElementById('c' + i), {{
     type: 'bar',
     data: {{
       labels: DATA.dates,
-      datasets: [
-        // stacked bar datasets
-        ...g.visas.map((v, vi) => ({{
-          label: v,
-          data: DATA.dates.map(d => (DATA.counts[v] || {{}})[d] || 0),
-          backgroundColor: g.colors[vi],
-          stack: 'stack',
-          yAxisID: 'y',
-          order: 2,
-        }})),
-        // min line — fills upward to max (next dataset)
-        {{
-          label: 'Min days',
-          type: 'line',
-          data: DATA.dates.map(d => gds[d] ? gds[d][1] : null),
-          borderColor: 'rgba(39,174,96,0.7)',
-          backgroundColor: 'rgba(100,180,255,0.13)',
-          borderWidth: 1,
-          pointRadius: 0,
-          tension: 0.3,
-          yAxisID: 'yR',
-          fill: '+1',
-          order: 1,
-        }},
-        // max line
-        {{
-          label: 'Max days',
-          type: 'line',
-          data: DATA.dates.map(d => gds[d] ? gds[d][2] : null),
-          borderColor: 'rgba(231,76,60,0.55)',
-          backgroundColor: 'transparent',
-          borderWidth: 1,
-          pointRadius: 0,
-          tension: 0.3,
-          yAxisID: 'yR',
-          fill: false,
-          order: 1,
-        }},
-        // avg line
-        {{
-          label: 'Avg days',
-          type: 'line',
-          data: DATA.dates.map(d => gds[d] ? gds[d][0] : null),
-          borderColor: '#e67e22',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.3,
-          yAxisID: 'yR',
-          fill: false,
-          order: 0,
-        }},
-      ]
+      datasets: g.visas.map((v, vi) => ({{
+        label: v,
+        data: DATA.dates.map(d => (DATA.counts[v] || {{}})[d] || 0),
+        backgroundColor: g.colors[vi],
+        stack: 'stack'
+      }}))
     }},
     options: {{
       responsive: true,
       plugins: {{
-        legend: {{ position: 'top', labels: {{ font: {{ size: 10 }}, padding: 5 }} }},
+        legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
         tooltip: {{ mode: 'index', intersect: false }}
       }},
       scales: {{
         x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
-        y: {{
-          stacked: true,
-          beginAtZero: true,
-          position: 'left',
-          title: {{ display: true, text: '# Cases', font: {{ size: 9 }} }},
-          ticks: {{ font: {{ size: 9 }} }},
-        }},
-        yR: {{
-          type: 'linear',
-          position: 'right',
-          beginAtZero: false,
-          title: {{ display: true, text: 'Wait Days', font: {{ size: 9 }} }},
-          ticks: {{ font: {{ size: 9 }} }},
-          grid: {{ drawOnChartArea: false }},
-        }},
+        y: {{ stacked: true, beginAtZero: true, title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }} }}
       }}
     }}
   }});
+}});
+
+// 7th card: waiting days distribution (all visa types combined)
+const waitCard = document.createElement('div');
+waitCard.className = 'card';
+waitCard.innerHTML =
+  '<h3>Waiting Days (All Visa Types)</h3>' +
+  '<canvas id="cWait"></canvas>' +
+  '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = avg</span></div>';
+grid.appendChild(waitCard);
+
+const ds = DATA.daily_stats;
+new Chart(document.getElementById('cWait'), {{
+  type: 'line',
+  data: {{
+    labels: DATA.dates,
+    datasets: [
+      {{
+        data: DATA.dates.map(d => ds[d] ? ds[d][1] : null),
+        borderColor: 'transparent',
+        backgroundColor: 'rgba(100,170,255,0.18)',
+        pointRadius: 0,
+        fill: '+1',
+        tension: 0.4,
+      }},
+      {{
+        data: DATA.dates.map(d => ds[d] ? ds[d][2] : null),
+        borderColor: 'rgba(150,190,255,0.45)',
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.4,
+      }},
+      {{
+        data: DATA.dates.map(d => ds[d] ? ds[d][0] : null),
+        borderColor: '#e67e22',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.4,
+      }},
+    ]
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ display: false }},
+      tooltip: {{
+        mode: 'index',
+        intersect: false,
+        callbacks: {{
+          label: (ctx) => {{
+            const d = ctx.label;
+            const s = ds[d];
+            if (!s) return '';
+            const labels = ['Min: ' + s[1] + 'd', 'Max: ' + s[2] + 'd', 'Avg: ' + s[0] + 'd'];
+            return labels[ctx.datasetIndex];
+          }}
+        }}
+      }}
+    }},
+    scales: {{
+      x: {{ ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
+      y: {{ beginAtZero: false, title: {{ display: true, text: 'Wait Days', font: {{ size: 10 }} }} }}
+    }}
+  }}
 }});
 </script>
 </body>
