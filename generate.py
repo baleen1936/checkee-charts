@@ -309,12 +309,16 @@ function updateAllCharts(records) {{
   if (cdc) {{
     const cd = agg.check_dist;
     cdc.data.labels = cd.dates;
-    cdc.data.datasets = (cd.statuses || []).map(s => ({{
-      label: s,
-      data:  cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-      backgroundColor: statusColors[s] || '#999',
-      stack: 'stack',
-    }}));
+    cdc.data.datasets = [
+      ...(cd.statuses || []).map(s => ({{
+        label: s,
+        data:  cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+        backgroundColor: statusColors[s] || '#999',
+        stack: 'stack',
+        order: 1,
+      }})),
+      cdTotalLine(cd.dates, cd.counts, cd.statuses),
+    ];
     cdc.update();
   }}
 }}
@@ -434,16 +438,34 @@ cdCard.innerHTML = '<h3>Check Date Distribution (by Status)</h3><canvas id="cCD"
 grid.appendChild(cdCard);
 
 const cd = DATA.check_dist;
+function cdTotalLine(dates, counts, statuses) {{
+  return {{
+    type: 'line',
+    label: 'Total',
+    data: dates.map(d => (statuses || []).reduce((sum, s) => sum + ((counts[s] || {{}})[d] || 0), 0)),
+    borderColor: '#555',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    pointRadius: 0,
+    tension: 0.4,
+    fill: false,
+    order: 0,
+  }};
+}}
 chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
   type: 'bar',
   data: {{
     labels: cd.dates,
-    datasets: (cd.statuses || []).map(s => ({{
-      label: s,
-      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-      backgroundColor: statusColors[s],
-      stack: 'stack',
-    }}))
+    datasets: [
+      ...(cd.statuses || []).map(s => ({{
+        label: s,
+        data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+        backgroundColor: statusColors[s],
+        stack: 'stack',
+        order: 1,
+      }})),
+      cdTotalLine(cd.dates, cd.counts, cd.statuses),
+    ]
   }},
   options: {{
     responsive: true,
