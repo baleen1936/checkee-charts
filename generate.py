@@ -70,10 +70,25 @@ def build_data(records):
             "max": max(all_days) if all_days else 0,
         }
 
+    # Per-day stats across all visa types combined
+    day_days = defaultdict(list)
+    for r in records:
+        day_days[r["date"]].append(r["days"])
+    daily_stats = {}
+    for date in dates:
+        dl = day_days[date]
+        if dl:
+            daily_stats[date] = {
+                "avg": round(sum(dl) / len(dl)),
+                "min": min(dl),
+                "max": max(dl),
+            }
+
     return {
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
         "stats": stats,
+        "daily_stats": daily_stats,
     }
 
 
@@ -92,18 +107,24 @@ def generate_html(data, updated):
   h1 {{ text-align: center; font-size: 17px; padding: 20px 0 6px; }}
   .updated {{ text-align: center; font-size: 11px; color: #999; margin-bottom: 16px; }}
   .updated a {{ color: #999; }}
-  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 20px; max-width: 1500px; margin: 0 auto; }}
+  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 16px; max-width: 1500px; margin: 0 auto; }}
   .card {{ background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }}
   .card h3 {{ text-align: center; font-size: 12px; font-weight: bold; margin-bottom: 8px; }}
   .stats {{ display: flex; justify-content: center; gap: 14px; margin-top: 8px; font-size: 11px; color: #888; border-top: 1px solid #f0f0f0; padding-top: 7px; }}
+  .wide-card {{ background: #fff; border-radius: 8px; padding: 14px 20px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.12); max-width: 1500px; margin: 0 20px 24px; }}
+  .wide-card h3 {{ text-align: center; font-size: 13px; font-weight: bold; margin-bottom: 10px; }}
   @media (max-width: 900px) {{ .grid {{ grid-template-columns: repeat(2, 1fr); }} }}
-  @media (max-width: 600px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+  @media (max-width: 600px) {{ .grid {{ grid-template-columns: 1fr; }} .wide-card {{ margin: 0 10px 20px; }} }}
 </style>
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
 <p class="updated">Last updated: {updated} &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div class="grid" id="grid"></div>
+<div class="wide-card">
+  <h3>Waiting Days Distribution per Day (All Visa Types)</h3>
+  <canvas id="cWaiting"></canvas>
+</div>
 <script>
 const DATA = {data_json};
 const groups = [
@@ -154,6 +175,62 @@ groups.forEach((g, i) => {{
       }}
     }}
   }});
+}});
+
+// Waiting days area chart
+const ds = DATA.daily_stats;
+const avgData = DATA.dates.map(d => ds[d] ? ds[d].avg : null);
+const minData = DATA.dates.map(d => ds[d] ? ds[d].min : null);
+const maxData = DATA.dates.map(d => ds[d] ? ds[d].max : null);
+
+new Chart(document.getElementById('cWaiting'), {{
+  type: 'line',
+  data: {{
+    labels: DATA.dates,
+    datasets: [
+      {{
+        label: 'Min',
+        data: minData,
+        borderColor: 'rgba(39,174,96,0.6)',
+        backgroundColor: 'rgba(100,180,255,0.18)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: '+1',
+        tension: 0.3,
+      }},
+      {{
+        label: 'Max',
+        data: maxData,
+        borderColor: 'rgba(231,76,60,0.6)',
+        backgroundColor: 'rgba(100,180,255,0.0)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.3,
+      }},
+      {{
+        label: 'Avg',
+        data: avgData,
+        borderColor: '#e67e22',
+        backgroundColor: 'rgba(230,126,34,0)',
+        borderWidth: 2.5,
+        pointRadius: 0,
+        fill: false,
+        tension: 0.3,
+      }},
+    ]
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 10 }} }},
+      tooltip: {{ mode: 'index', intersect: false }}
+    }},
+    scales: {{
+      x: {{ ticks: {{ maxRotation: 60, font: {{ size: 9 }} }} }},
+      y: {{ beginAtZero: false, title: {{ display: true, text: 'Waiting Days', font: {{ size: 11 }} }} }}
+    }}
+  }}
 }});
 </script>
 </body>
