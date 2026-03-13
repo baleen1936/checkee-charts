@@ -2,7 +2,7 @@
 
 Daily US visa administrative processing charts, auto-updated from [checkee.info](https://www.checkee.info).
 
-**Live dashboard → https://BBJ-ymc.github.io/checkee-charts**
+**Live dashboard → https://chunhuali-1936.github.io/checkee-charts**
 
 ## What it shows
 
