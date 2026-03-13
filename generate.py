@@ -506,7 +506,7 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
 const entryCard = document.createElement('div');
 entryCard.className = 'card';
 entryCard.innerHTML =
-  '<h3>Consulate Distribution (click to filter)</h3>' +
+  '<h3>Consulate Distribution (All Visa Types)</h3>' +
   '<canvas id="cEntry"></canvas>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">click a slice · click again to reset</span></div>';
 grid.appendChild(entryCard);
