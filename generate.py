@@ -147,7 +147,7 @@ def generate_html(data, updated):
   h1 {{ text-align: center; font-size: 17px; padding: 20px 0 6px; }}
   .updated {{ text-align: center; font-size: 11px; color: #999; margin-bottom: 16px; }}
   .updated a {{ color: #999; }}
-  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; }}
+  .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: start; }}
   .card {{ background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.12); }}
   .card h3 {{ text-align: center; font-size: 12px; font-weight: bold; margin-bottom: 8px; }}
   .stats {{ display: flex; justify-content: center; gap: 14px; margin-top: 8px; font-size: 11px; color: #888; border-top: 1px solid #f0f0f0; padding-top: 7px; }}
@@ -320,9 +320,7 @@ new Chart(document.getElementById('cCD'), {{
 // Card 9: consulate pie chart
 const entryCard = document.createElement('div');
 entryCard.className = 'card';
-entryCard.style.display = 'flex';
-entryCard.style.flexDirection = 'column';
-entryCard.innerHTML = '<h3>Consulate Distribution</h3><div style="position:relative;flex:1;min-height:0;max-height:320px"><canvas id="cEntry"></canvas></div>';
+entryCard.innerHTML = '<h3>Consulate Distribution</h3><div style="position:relative;height:220px"><canvas id="cEntry"></canvas></div>';
 grid.appendChild(entryCard);
 
 const consDist = DATA.consulate_dist || {{}};
