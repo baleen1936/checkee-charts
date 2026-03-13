@@ -188,7 +188,7 @@ const groups = [
 
 // Status colors (defined early so updateAllCharts can reference them)
 const statusColors = {{}};
-const palette = ['#42A5F5','#FFA726','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
+const palette = ['#F06292','#333333','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
 (DATA.check_dist.statuses || []).forEach((s, i) => {{
   statusColors[s] = palette[i % palette.length];
 }});
