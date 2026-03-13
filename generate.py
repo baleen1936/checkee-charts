@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from collections import defaultdict
 import json
 import re
+import statistics
 from datetime import datetime, timezone, timedelta
 
 
@@ -91,18 +92,18 @@ def build_data(records):
         key = ",".join(visas)
         stats[key] = {
             "total": len(all_days),
-            "avg": round(sum(all_days) / len(all_days)) if all_days else 0,
+            "med": round(statistics.median(all_days)) if all_days else 0,
             "min": min(all_days) if all_days else 0,
             "max": max(all_days) if all_days else 0,
         }
 
-    # Per-day stats across all visa types: [avg, min, max]
+    # Per-day stats across all visa types: [median, min, max]
     daily_stats = {}
     for date in dates:
         dl = day_days[date]
         if dl:
             daily_stats[date] = [
-                round(sum(dl) / len(dl)),
+                round(statistics.median(dl)),
                 min(dl),
                 max(dl),
             ]
@@ -198,6 +199,14 @@ const filterPill = document.getElementById('filterPill');
 const chartInstances = {{}};
 let activeConsulate = null;
 
+// ── Median helper ─────────────────────────────────────────────────────────────
+function jsMedian(arr) {{
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+}}
+
 // ── Client-side aggregation ───────────────────────────────────────────────────
 function buildAgg(records) {{
   const dateSets = new Set();
@@ -228,7 +237,7 @@ function buildAgg(records) {{
     const tot = allDays.length;
     stats[g.visas.join(',')] = {{
       total: tot,
-      avg:   tot ? Math.round(allDays.reduce((a, b) => a + b, 0) / tot) : 0,
+      med:   jsMedian(allDays),
       min:   tot ? Math.min(...allDays) : 0,
       max:   tot ? Math.max(...allDays) : 0,
     }};
@@ -239,7 +248,7 @@ function buildAgg(records) {{
     const dl = dayDays[date] || [];
     if (dl.length) {{
       daily_stats[date] = [
-        Math.round(dl.reduce((a, b) => a + b, 0) / dl.length),
+        jsMedian(dl),
         Math.min(...dl),
         Math.max(...dl),
       ];
@@ -280,7 +289,7 @@ function updateAllCharts(records) {{
     const statsEl = chart.canvas.closest('.card').querySelector('.stats');
     if (statsEl) statsEl.innerHTML =
       '<span>n=<b style="color:#555">' + (s.total || 0) + '</b></span>' +
-      '<span>avg <b style="color:#e67e22">' + (s.avg || 0) + 'd</b></span>' +
+      '<span>med <b style="color:#e67e22">' + (s.med || 0) + 'd</b></span>' +
       '<span>min <b style="color:#27ae60">' + (s.min || 0) + 'd</b></span>' +
       '<span>max <b style="color:#e74c3c">' + (s.max || 0) + 'd</b></span>';
   }});
@@ -321,7 +330,7 @@ groups.forEach((g, i) => {{
     '<canvas id="c' + i + '"></canvas>' +
     '<div class="stats">' +
       '<span>n=<b style="color:#555">' + s.total + '</b></span>' +
-      '<span>avg <b style="color:#e67e22">' + s.avg + 'd</b></span>' +
+      '<span>med <b style="color:#e67e22">' + s.med + 'd</b></span>' +
       '<span>min <b style="color:#27ae60">' + s.min + 'd</b></span>' +
       '<span>max <b style="color:#e74c3c">' + s.max + 'd</b></span>' +
     '</div>';
@@ -358,7 +367,7 @@ waitCard.className = 'card';
 waitCard.innerHTML =
   '<h3>Waiting Days (All Visa Types)</h3>' +
   '<canvas id="cWait"></canvas>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = avg</span></div>';
+  '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = median</span></div>';
 grid.appendChild(waitCard);
 
 const dstat0 = DATA.daily_stats;
@@ -407,7 +416,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
             // Read from chart's live data so filtered values show correctly
             const val = chartInstances['cWait'].data.datasets[ctx.datasetIndex].data[ctx.dataIndex];
             if (val === null || val === undefined) return '';
-            return ['Min: ' + val + 'd', 'Max: ' + val + 'd', 'Avg: ' + val + 'd'][ctx.datasetIndex];
+            return ['Min: ' + val + 'd', 'Max: ' + val + 'd', 'Med: ' + val + 'd'][ctx.datasetIndex];
           }}
         }}
       }}
