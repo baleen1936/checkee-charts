@@ -78,7 +78,8 @@ def scrape():
                 days = int(cells[9].get_text(strip=True))
             except ValueError:
                 continue
-            details    = cells[10].get_text(strip=True)
+            _dlink     = cells[10].find('a')
+            details    = _dlink.get('title', '').strip() if _dlink else ''
             if re.match(r"^\d{4}-\d{2}-\d{2}$", date) and visa and 0 <= days < 2000:
                 records.append({
                     "date": date,
@@ -216,7 +217,7 @@ def generate_html(data, updated):
   padding: 5px 8px; border-bottom: 1px solid #eee;
   vertical-align: top;
 }}
-#recordsTable td.col-details {{ max-width: 260px; word-break: break-word; }}
+#recordsTable td.col-details {{ max-width: 300px; white-space: pre-wrap; word-break: break-word; font-size:11px; }}
 #recordsTable td.col-days {{ text-align: right; }}
 .table-sort-asc::after  {{ content: ' ▲'; font-size:10px; }}
 .table-sort-desc::after {{ content: ' ▼'; font-size:10px; }}
