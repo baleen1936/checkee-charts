@@ -10,7 +10,7 @@ Auto-updated US visa administrative processing dashboard, sourced from [checkee.
 
 9 cards across 3 columns:
 
-**Visa group bar charts (cards 1–6)** — daily case counts (stacked bar) by status (Clear / Reject), with summary stats: total cases, median / min / max waiting days.
+**Visa group bar charts (cards 1–6)** — daily case counts (stacked bar) by visa subtype, with summary stats: total cases, median / min / max waiting days.
 
 | Card | Visas |
 |---|---|
