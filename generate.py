@@ -201,6 +201,26 @@ def generate_html(data, updated):
   .stats {{ display: flex; justify-content: center; gap: 14px; margin-top: 8px; font-size: 11px; color: #888; border-top: 1px solid #f0f0f0; padding-top: 7px; }}
   @media (max-width: 900px) {{ .grid {{ grid-template-columns: repeat(2, 1fr); }} }}
   @media (max-width: 600px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+/* ── Records table ─────────────────────────────────────────────── */
+#recordsTable {{ width:100%; border-collapse:collapse; font-size:12px; }}
+#recordsTable thead th {{
+  position: sticky; top: 0;
+  background: #f0f0f0; border-bottom: 2px solid #ddd;
+  padding: 6px 8px; text-align: left; white-space: nowrap;
+  cursor: pointer; user-select: none;
+}}
+#recordsTable thead th:hover {{ background: #e4e4e4; }}
+#recordsTable tbody tr:nth-child(even) {{ background: #f9f9f9; }}
+#recordsTable tbody tr:hover {{ background: #eef4ff; }}
+#recordsTable tbody td {{
+  padding: 5px 8px; border-bottom: 1px solid #eee;
+  vertical-align: top;
+}}
+#recordsTable td.col-details {{ max-width: 260px; word-break: break-word; }}
+#recordsTable td.col-days {{ text-align: right; }}
+.table-sort-asc::after  {{ content: ' ▲'; font-size:10px; }}
+.table-sort-desc::after {{ content: ' ▼'; font-size:10px; }}
+#tableCount {{ font-size:12px; color:#888; margin-bottom:6px; }}
 </style>
 </head>
 <body>
