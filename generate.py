@@ -690,7 +690,7 @@ function renderTable(records) {{
     ['Status',        3, '',           '62px'],
     ['Check Date',    4, '',           '92px'],
     ['Complete Date', 0, '',           '105px'],
-    ['Waiting Days',  2, 'col-days',   '88px'],
+    ['Waiting Days',  2, 'col-days',   '56px'],
     ['Visa Type',     1, '',           '72px'],
     ['Entry',         6, '',           '52px'],
     ['Consulate',     5, '',           '90px'],
