@@ -218,7 +218,8 @@ def generate_html(data, updated):
   vertical-align: top; overflow: hidden;
 }}
 #recordsTable td.col-details {{ white-space: pre-wrap; word-break: break-word; font-size:11px; }}
-#recordsTable td:not(.col-details) {{ white-space: nowrap; text-overflow: ellipsis; }}
+#recordsTable td.col-major {{ white-space: normal; word-break: break-word; }}
+#recordsTable td:not(.col-details):not(.col-major) {{ white-space: nowrap; text-overflow: ellipsis; }}
 #recordsTable td.col-days {{ text-align: right; }}
 .table-sort-asc::after  {{ content: ' ▲'; font-size:10px; }}
 .table-sort-desc::after {{ content: ' ▼'; font-size:10px; }}
@@ -694,7 +695,7 @@ function renderTable(records) {{
     ['Visa Type',     1, '',           '72px'],
     ['Entry',         6, '',           '65px'],
     ['Consulate',     5, '',           '90px'],
-    ['Major',         7, '',           '140px'],
+    ['Major',         7, 'col-major',   '140px'],
     ['Details',       8, 'col-details',''],
   ];
 
