@@ -220,7 +220,8 @@ def generate_html(data, updated):
 #recordsTable td.col-details {{ white-space: pre-wrap; word-break: break-word; font-size:11px; }}
 #recordsTable td.col-major {{ white-space: normal; word-break: break-word; }}
 #recordsTable td:not(.col-details):not(.col-major) {{ white-space: nowrap; text-overflow: ellipsis; }}
-#recordsTable td.col-days, #recordsTable th.col-days {{ text-align: center !important; }}
+#recordsTable td.col-days, #recordsTable th.col-days,
+#recordsTable td.col-center, #recordsTable th.col-center {{ text-align: center !important; }}
 .table-sort-asc::after  {{ content: ' ▲'; font-size:10px; }}
 .table-sort-desc::after {{ content: ' ▼'; font-size:10px; }}
 #tableCount {{ font-size:12px; color:#888; margin-bottom:6px; }}
@@ -692,7 +693,7 @@ function renderTable(records) {{
     ['Check Date',    4, '',           '92px'],
     ['Complete Date', 0, '',           '110px'],
     ['Waiting Days',  2, 'col-days',   '76px'],
-    ['Visa Type',     1, '',           '72px'],
+    ['Visa Type',     1, 'col-center',  '72px'],
     ['Entry',         6, '',           '65px'],
     ['Consulate',     5, '',           '90px'],
     ['Major',         7, 'col-major',   '140px'],
