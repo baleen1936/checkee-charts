@@ -131,6 +131,7 @@ def build_data(records, monthly):
     raw_days = defaultdict(list)
     day_days = defaultdict(list)
     check_status_counts = defaultdict(lambda: defaultdict(int))  # check_date -> status -> count
+    complete_status_counts = defaultdict(lambda: defaultdict(int))  # complete_date -> status -> count
     entry_counts = defaultdict(int)
     consulate_counts = defaultdict(int)
 
@@ -142,6 +143,9 @@ def build_data(records, monthly):
         cd = r["check_date"]
         if re.match(r"^\d{4}-\d{2}-\d{2}$", cd):
             check_status_counts[cd][r["status"]] += 1
+        # Complete date distribution
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", r["date"]):
+            complete_status_counts[r["date"]][r["status"]] += 1
         if r["entry"]:
             entry_counts[r["entry"]] += 1
         if r["consulate"]:
@@ -183,6 +187,15 @@ def build_data(records, monthly):
             for s in all_statuses
         }
     }
+    complete_dates = sorted(complete_status_counts.keys())
+    complete_dist = {
+        "dates": complete_dates,
+        "statuses": all_statuses,
+        "counts": {
+            s: {d: complete_status_counts[d].get(s, 0) for d in complete_dates}
+            for s in all_statuses
+        }
+    }
 
     # Compact raw records: [date, visa, days, status, check_date, consulate, entry, major, details]
     raw_records = [
@@ -197,6 +210,7 @@ def build_data(records, monthly):
         "stats": stats,
         "daily_stats": daily_stats,
         "check_dist": check_dist,
+        "complete_dist": complete_dist,
         "entry_dist": dict(entry_counts),
         "consulate_dist": dict(consulate_counts),
         "raw_records": raw_records,
@@ -285,7 +299,7 @@ const groups = [
 // Status colors (defined early so updateAllCharts can reference them)
 const statusColors = {{}};
 const palette = ['#F8BBD0','#333333','#2196F3','#FF9800','#9C27B0','#607D8B','#795548','#00BCD4'];
-(DATA.check_dist.statuses || []).forEach((s, i) => {{
+(DATA.complete_dist.statuses || []).forEach((s, i) => {{
   statusColors[s] = palette[i % palette.length];
 }});
 
@@ -310,6 +324,7 @@ function buildAgg(records) {{
   const dayDays = {{}};
   const cscMap = {{}};
 
+  const compMap = {{}};
   for (const [date, visa, days, status, checkDate] of records) {{
     dateSets.add(date);
     countsMap[visa] = countsMap[visa] || {{}};
@@ -321,6 +336,10 @@ function buildAgg(records) {{
     if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}$/.test(checkDate)) {{
       cscMap[checkDate] = cscMap[checkDate] || {{}};
       cscMap[checkDate][status] = (cscMap[checkDate][status] || 0) + 1;
+    }}
+    if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}$/.test(date)) {{
+      compMap[date] = compMap[date] || {{}};
+      compMap[date][status] = (compMap[date][status] || 0) + 1;
     }}
   }}
 
@@ -352,7 +371,7 @@ function buildAgg(records) {{
 
   // Use the global status list so colors stay consistent even if a consulate
   // has zero records for some statuses.
-  const allStatuses = DATA.check_dist.statuses || [];
+  const allStatuses = DATA.complete_dist.statuses || [];
   const checkDates  = Object.keys(cscMap).sort();
   const check_dist  = {{
     dates:    checkDates,
@@ -361,8 +380,16 @@ function buildAgg(records) {{
       s, Object.fromEntries(checkDates.map(cd => [cd, (cscMap[cd] || {{}})[s] || 0]))
     ])),
   }};
+  const compDates = Object.keys(compMap).sort();
+  const complete_dist = {{
+    dates:    compDates,
+    statuses: allStatuses,
+    counts:   Object.fromEntries(allStatuses.map(s => [
+      s, Object.fromEntries(compDates.map(d => [d, (compMap[d] || {{}})[s] || 0]))
+    ])),
+  }};
 
-  return {{ dates, counts: countsMap, stats, daily_stats, check_dist }};
+  return {{ dates, counts: countsMap, stats, daily_stats, check_dist, complete_dist }};
 }}
 
 // ── Refresh all charts from a (possibly filtered) record list ─────────────────
@@ -400,22 +427,19 @@ function updateAllCharts(records) {{
     wc.update();
   }}
 
-  // Check date distribution chart
+  // Issue date distribution chart
   const cdc = chartInstances['cCD'];
   if (cdc) {{
-    const cd = agg.check_dist;
+    const cd = agg.complete_dist;
     cdc.data.labels = cd.dates;
-    cdc.data.datasets = [
-      ...(cd.statuses || []).map(s => ({{
-        label: s,
-        data:  cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-        backgroundColor: statusColors[s] || '#999',
-        stack: 'stack',
-        order: 1,
-        pointStyle: 'rect',
-      }})),
-      cdNormalLine(cd.dates, cd.counts, cd.statuses),
-    ];
+    cdc.data.datasets = (cd.statuses || []).map(s => ({{
+      label: s,
+      data:  cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+      backgroundColor: statusColors[s] || '#999',
+      stack: 'stack',
+      order: 1,
+      pointStyle: 'rect',
+    }}));
     cdc.update();
   }}
   _currentTableRecords = records;
@@ -470,7 +494,7 @@ waitCard.innerHTML =
   '<h3>Waiting Days (All Visa Types)</h3>' +
   '<canvas id="cWait"></canvas>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = median</span></div>';
-grid.appendChild(waitCard);
+// waitCard appended after cdCard (see below)
 
 const dstat0 = DATA.daily_stats;
 chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
@@ -530,62 +554,27 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
   }}
 }});
 
-// ── Card 7: check date distribution ──────────────────────────────────────────
+// ── Card 7: issue date distribution (appended before waitCard) ────────────────
 const cdCard = document.createElement('div');
 cdCard.className = 'card';
-cdCard.innerHTML = '<h3>Check Date Distribution (All Visa Types)</h3><canvas id="cCD"></canvas>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">stacked bars = status &nbsp;·&nbsp; curve = normal dist. fit</span></div>';
+cdCard.innerHTML = '<h3>Issue Date Distribution (All Visa Types)</h3><canvas id="cCD"></canvas>' +
+  '<div class="stats"><span style="color:#aaa;font-size:10px">stacked bars = status by issue date</span></div>';
 grid.appendChild(cdCard);
+grid.appendChild(waitCard);
 
-const cd = DATA.check_dist;
-function cdNormalLine(dates, counts, statuses) {{
-  const totals = dates.map(d =>
-    (statuses || []).reduce((sum, s) => sum + ((counts[s] || {{}})[d] || 0), 0)
-  );
-  const N = totals.reduce((a, b) => a + b, 0);
-  if (!N || dates.length < 2) {{
-    return {{ type: 'line', label: 'Normal dist.', data: dates.map(() => 0),
-              borderColor: '#888', backgroundColor: 'transparent',
-              borderWidth: 1.5, pointRadius: 0, fill: false, order: 0 }};
-  }}
-  // Weighted mean and std dev (using date index as x)
-  const mean = totals.reduce((s, v, i) => s + v * i, 0) / N;
-  const variance = totals.reduce((s, v, i) => s + v * (i - mean) ** 2, 0) / N;
-  const std = Math.sqrt(variance) || 1;
-  // Gaussian PDF scaled so total area ≈ N (bin width = 1 day)
-  const sq2pi = Math.sqrt(2 * Math.PI);
-  const data = dates.map((_, i) =>
-    N * Math.exp(-0.5 * ((i - mean) / std) ** 2) / (std * sq2pi)
-  );
-  return {{
-    type: 'line',
-    label: 'Normal dist.',
-    data,
-    borderColor: '#555',
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    pointRadius: 0,
-    pointStyle: 'line',
-    tension: 0,
-    fill: false,
-    order: 0,
-  }};
-}}
+const cd = DATA.complete_dist;
 chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
   type: 'bar',
   data: {{
     labels: cd.dates,
-    datasets: [
-      ...(cd.statuses || []).map(s => ({{
-        label: s,
-        data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-        backgroundColor: statusColors[s],
-        stack: 'stack',
-        order: 1,
-        pointStyle: 'rect',
-      }})),
-      cdNormalLine(cd.dates, cd.counts, cd.statuses),
-    ]
+    datasets: (cd.statuses || []).map(s => ({{
+      label: s,
+      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+      backgroundColor: statusColors[s],
+      stack: 'stack',
+      order: 1,
+      pointStyle: 'rect',
+    }})),
   }},
   options: {{
     responsive: true,
