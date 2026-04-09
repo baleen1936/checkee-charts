@@ -59,7 +59,7 @@
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
-<p class="updated">Last updated: 2026-04-09 22:40 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="updated">Last updated: 2026-04-09 22:43 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <div class="monthly-wrap" id="monthlyWrap"></div>
@@ -579,29 +579,37 @@ filterPill.addEventListener('click', () => {
                 font: { size: 9 }, color: 'rgba(180,0,0,0.45)',
                 backgroundColor: 'transparent', padding: 2 },
             },
-            t1start: {
-              type: 'line', scaleID: 'x',
-              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
-              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
-              label: { content: 'Trump I', display: true, position: 'start',
-                font: { size: 9, style: 'italic' }, color: '#bbb',
-                backgroundColor: 'transparent', padding: 2 },
+            obama: {
+              type: 'box', xScaleID: 'x',
+              xMin: 0,
+              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
+              backgroundColor: 'rgba(33,150,243,0.06)', borderWidth: 0,
+              label: { content: 'Obama', display: true, position: { x: 'center', y: 'start' },
+                font: { size: 10, style: 'italic' }, color: 'rgba(33,150,243,0.5)' },
             },
-            bidenstart: {
-              type: 'line', scaleID: 'x',
-              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
-              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
-              label: { content: 'Biden', display: true, position: 'start',
-                font: { size: 9, style: 'italic' }, color: '#bbb',
-                backgroundColor: 'transparent', padding: 2 },
+            trump1: {
+              type: 'box', xScaleID: 'x',
+              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
+              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
+              backgroundColor: 'rgba(244,67,54,0.06)', borderWidth: 0,
+              label: { content: 'Trump I', display: true, position: { x: 'center', y: 'start' },
+                font: { size: 10, style: 'italic' }, color: 'rgba(244,67,54,0.5)' },
             },
-            t2start: {
-              type: 'line', scaleID: 'x',
-              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
-              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
-              label: { content: 'Trump II', display: true, position: 'start',
-                font: { size: 9, style: 'italic' }, color: '#bbb',
-                backgroundColor: 'transparent', padding: 2 },
+            biden: {
+              type: 'box', xScaleID: 'x',
+              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
+              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
+              backgroundColor: 'rgba(33,150,243,0.06)', borderWidth: 0,
+              label: { content: 'Biden', display: true, position: { x: 'center', y: 'start' },
+                font: { size: 10, style: 'italic' }, color: 'rgba(33,150,243,0.5)' },
+            },
+            trump2: {
+              type: 'box', xScaleID: 'x',
+              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
+              xMax: mLabels.length - 1,
+              backgroundColor: 'rgba(244,67,54,0.06)', borderWidth: 0,
+              label: { content: 'Trump II', display: true, position: { x: 'center', y: 'start' },
+                font: { size: 10, style: 'italic' }, color: 'rgba(244,67,54,0.5)' },
             },
           } },
         },
