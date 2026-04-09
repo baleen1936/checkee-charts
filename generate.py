@@ -299,17 +299,17 @@ def generate_html(data, updated):
 <script>
 const DATA = {data_json};
 const groups = [
-  {{ label: 'Business / Visitor', visas: ['B1','B2'], colors: ['#4A7FA8','#A0C4DC'] }},
-  {{ label: 'Student',            visas: ['F1','F2'], colors: ['#5A8A6A','#96BFA6'] }},
-  {{ label: 'Work',               visas: ['H1','H4'], colors: ['#9E6B7E','#C9A3B4'] }},
-  {{ label: 'Exchange Visitor',   visas: ['J1','J2'], colors: ['#B87333','#D4A870'] }},
-  {{ label: 'Intracompany',       visas: ['L1','L2'], colors: ['#4A7A80','#82AEAE'] }},
-  {{ label: 'Extraordinary Ability', visas: ['O1'],   colors: ['#7A7A30'] }},
+  {{ label: 'Business / Visitor', visas: ['B1','B2'], colors: ['#4A8FBF','#8FC4DC'] }},
+  {{ label: 'Student',            visas: ['F1','F2'], colors: ['#3E9E72','#80C8A0'] }},
+  {{ label: 'Work',               visas: ['H1','H4'], colors: ['#B5637A','#D49AB0'] }},
+  {{ label: 'Exchange Visitor',   visas: ['J1','J2'], colors: ['#C87C30','#E0B070'] }},
+  {{ label: 'Intracompany',       visas: ['L1','L2'], colors: ['#3E8F8F','#78C0C0'] }},
+  {{ label: 'Extraordinary Ability', visas: ['O1'],   colors: ['#9B9230'] }},
 ];
 
 // Status colors (defined early so updateAllCharts can reference them)
 const statusColors = {{}};
-const palette = ['#5A8A6A','#A05545','#7A96B8','#8A7060','#A86878','#4E6A7A','#7A9AAA','#A09030'];
+const palette = ['#3E9E72','#C0504A','#5B8DB8','#C87C30','#B5637A','#3E8F8F','#7AAABB','#A09030'];
 (DATA.complete_dist.statuses || []).forEach((s, i) => {{
   statusColors[s] = palette[i % palette.length];
 }});
@@ -422,9 +422,9 @@ function updateAllCharts(records) {{
     const statsEl = chart.canvas.closest('.card').querySelector('.stats');
     if (statsEl) statsEl.innerHTML =
       '<span>n=<b style="color:#555">' + (s.total || 0) + '</b></span>' +
-      '<span>med <b style="color:#8A7060">' + (s.med || 0) + 'd</b></span>' +
-      '<span>min <b style="color:#5A8A6A">' + (s.min || 0) + 'd</b></span>' +
-      '<span>max <b style="color:#B05A4A">' + (s.max || 0) + 'd</b></span>';
+      '<span>med <b style="color:#A07840">' + (s.med || 0) + 'd</b></span>' +
+      '<span>min <b style="color:#3E9E72">' + (s.min || 0) + 'd</b></span>' +
+      '<span>max <b style="color:#C0504A">' + (s.max || 0) + 'd</b></span>';
   }});
 
   // Waiting days chart
@@ -467,9 +467,9 @@ groups.forEach((g, i) => {{
     '<canvas id="c' + i + '"></canvas>' +
     '<div class="stats">' +
       '<span>n=<b style="color:#555">' + s.total + '</b></span>' +
-      '<span>med <b style="color:#8A7060">' + s.med + 'd</b></span>' +
-      '<span>min <b style="color:#5A8A6A">' + s.min + 'd</b></span>' +
-      '<span>max <b style="color:#B05A4A">' + s.max + 'd</b></span>' +
+      '<span>med <b style="color:#A07840">' + s.med + 'd</b></span>' +
+      '<span>min <b style="color:#3E9E72">' + s.min + 'd</b></span>' +
+      '<span>max <b style="color:#C0504A">' + s.max + 'd</b></span>' +
     '</div>';
   grid.appendChild(card);
 
@@ -532,7 +532,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
       }},
       {{
         data: DATA.dates.map(d => dstat0[d] ? dstat0[d][0] : null),
-        borderColor: '#8A7060',
+        borderColor: '#A07840',
         backgroundColor: 'transparent',
         borderWidth: 2,
         pointRadius: 0,
@@ -615,10 +615,10 @@ const consValues = consLabels.map(k => consDist[k]);
 // Muted qualitative palette — 14 calm tones, hash-assigned per consulate
 function consPastel(name) {{
   const muted14 = [
-    '#7B9DC4','#6A9E7A','#B07B7B','#A07BB0',
-    '#C4A56A','#7BAAB0','#9B8B75','#8A9B7B',
-    '#B08A6A','#7B8FB0','#A07B90','#9B7BB0',
-    '#7BA090','#B09B6A'
+    '#4A8FBF','#3E9E72','#C0504A','#9060B0',
+    '#C87C30','#3E8F8F','#8E7040','#6E9040',
+    '#C05070','#4A70B0','#A06840','#5E9E80',
+    '#7A60A0','#B08030'
   ];
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -710,9 +710,9 @@ filterPill.addEventListener('click', () => {{
     data: {{
       labels: mLabels,
       datasets: [
-        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#5A8A6A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#A05545', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#7A96B8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#3E9E72', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#C0504A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#5B8DB8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
         {{ type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointStyle: 'circle', tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' }},
       ],
     }},
@@ -771,8 +771,8 @@ filterPill.addEventListener('click', () => {{
         datasets: [{{
           label: 'Avg Waiting Days',
           data: avgWait,
-          borderColor: '#8A7060',
-          backgroundColor: 'rgba(138,112,96,0.08)',
+          borderColor: '#A07840',
+          backgroundColor: 'rgba(160,120,64,0.10)',
           borderWidth: 2,
           pointRadius: 3,
           pointStyle: 'circle',
