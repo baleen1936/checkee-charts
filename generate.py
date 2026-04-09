@@ -110,17 +110,20 @@ def scrape_monthly():
                 clear   = int(cells[3].get_text(strip=True))
                 reject  = int(cells[4].get_text(strip=True))
                 total   = int(cells[5].get_text(strip=True))
+                avg_wait_raw = cells[6].get_text(strip=True) if len(cells) > 6 else "-"
+                avg_wait = float(avg_wait_raw) if avg_wait_raw not in ("-", "", "N/A") else None
             except ValueError:
                 continue
-            rows.append({"month": month, "pending": pending, "clear": clear, "reject": reject, "total": total})
+            rows.append({"month": month, "pending": pending, "clear": clear, "reject": reject, "total": total, "avg_wait": avg_wait})
     rows.sort(key=lambda x: x["month"])
     rows = rows[-120:]
     return {
-        "months":  [r["month"]   for r in rows],
-        "pending": [r["pending"] for r in rows],
-        "clear":   [r["clear"]   for r in rows],
-        "reject":  [r["reject"]  for r in rows],
-        "total":   [r["total"]   for r in rows],
+        "months":   [r["month"]    for r in rows],
+        "pending":  [r["pending"]  for r in rows],
+        "clear":    [r["clear"]    for r in rows],
+        "reject":   [r["reject"]   for r in rows],
+        "total":    [r["total"]    for r in rows],
+        "avg_wait": [r["avg_wait"] for r in rows],
     }
 
 
@@ -278,6 +281,7 @@ def generate_html(data, updated):
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <div class="monthly-wrap" id="monthlyWrap"></div>
+<div class="monthly-wrap" id="waitWrap"></div>
 <div style="max-width:1500px;margin:0 auto 24px;padding:0 20px">
   <div class="card">
     <h3>All Records (Last 90 Days)</h3>
@@ -755,6 +759,49 @@ filterPill.addEventListener('click', () => {{
       }},
     }},
   }});
+
+  // ── Avg Waiting Days chart ────────────────────────────────────────────────
+  const avgWait = monthly.avg_wait || [];
+  if (avgWait.some(function(v) {{ return v !== null; }})) {{
+    const waitCard2 = document.createElement('div');
+    waitCard2.className = 'card';
+    waitCard2.innerHTML = '<h3>Avg Waiting Days for Completed Cases (Trailing 10 Years)</h3><canvas id="cAvgWait" style="max-height:220px"></canvas>' +
+      '<div class="stats"><span style="color:#aaa;font-size:10px">line = avg waiting days for cleared/rejected cases that month</span></div>';
+    document.getElementById('waitWrap').appendChild(waitCard2);
+    new Chart(document.getElementById('cAvgWait'), {{
+      type: 'line',
+      data: {{
+        labels: mLabels,
+        datasets: [{{
+          label: 'Avg Waiting Days',
+          data: avgWait,
+          borderColor: '#e67e22',
+          backgroundColor: 'rgba(230,126,34,0.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointStyle: 'circle',
+          tension: 0.3,
+          fill: true,
+          spanGaps: true,
+        }}],
+      }},
+      options: {{
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {{
+          legend: {{ display: false }},
+          tooltip: {{ mode: 'index', intersect: false, callbacks: {{
+            label: function(ctx) {{ return 'Avg wait: ' + (ctx.parsed.y !== null ? ctx.parsed.y + ' days' : 'N/A'); }},
+          }} }},
+        }},
+        scales: {{
+          x: {{ ticks: {{ font: {{ size: 10 }} }} }},
+          y: {{ beginAtZero: true, title: {{ display: true, text: 'Avg Days', font: {{ size: 10 }} }},
+            ticks: {{ callback: function(v) {{ return v + 'd'; }} }} }},
+        }},
+      }},
+    }});
+  }}
 }})();
 
 // ── Records table ─────────────────────────────────────────────────────────
