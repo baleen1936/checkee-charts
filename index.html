@@ -59,7 +59,7 @@
 </head>
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
-<p class="updated">Last updated: 2026-04-09 22:38 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="updated">Last updated: 2026-04-09 22:40 UTC &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <div class="monthly-wrap" id="monthlyWrap"></div>
@@ -487,14 +487,14 @@ filterPill.addEventListener('click', () => {
         { label: 'Clear',   data: monthly.months.map(function(_,i){ return pct(monthly.clear,i);   }), backgroundColor: '#54A06B', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' },
         { label: 'Reject',  data: monthly.months.map(function(_,i){ return pct(monthly.reject,i);  }), backgroundColor: '#D4635A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' },
         { label: 'Pending', data: monthly.months.map(function(_,i){ return pct(monthly.pending,i); }), backgroundColor: '#9DB0C8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' },
-        { type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointStyle: 'circle', tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' },
+        { type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top', labels: { font: { size: 11 }, padding: 8, usePointStyle: true } },
+        legend: { position: 'top', labels: { font: { size: 10 }, padding: 10, usePointStyle: true, boxWidth: 8 } },
         tooltip: {
           mode: 'index', intersect: false,
           callbacks: {
@@ -510,21 +510,28 @@ filterPill.addEventListener('click', () => {
           covid: {
             type: 'line', scaleID: 'x',
             value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2020'); }),
-            borderColor: 'rgba(180,0,0,0.55)', borderWidth: 1.5,
-            borderDash: [5, 4],
-            label: { content: '🦠 COVID-19', display: true, position: 'start',
-              font: { size: 10 }, color: 'rgba(180,0,0,0.8)',
-              backgroundColor: 'rgba(255,255,255,0.75)', padding: 4 },
+            borderColor: 'rgba(180,0,0,0.35)', borderWidth: 1,
+            borderDash: [4, 4],
+            label: { content: 'COVID-19', display: true, position: 'start',
+              font: { size: 9 }, color: 'rgba(180,0,0,0.55)',
+              backgroundColor: 'transparent', padding: 2 },
           },
         } },
       },
       scales: {
-        x: { stacked: true, ticks: { font: { size: 10 } } },
+        x: { stacked: true,
+          ticks: { font: { size: 9 }, color: '#aaa',
+            callback: function(val, i) {
+              const l = mLabels[i] || '';
+              return (l.startsWith('Jan') || l.startsWith('May') || l.startsWith('Sep')) ? l : '';
+            }
+          },
+          grid: { color: 'rgba(0,0,0,0.04)', drawTicks: false } },
         yPct: { type: 'linear', position: 'left', stacked: true, min: 0, max: 100,
-          title: { display: true, text: '% of Cases', font: { size: 10 } },
-          ticks: { callback: function(v) { return v + '%'; } } },
+          ticks: { font: { size: 9 }, color: '#aaa', callback: function(v) { return v + '%'; } },
+          grid: { color: 'rgba(0,0,0,0.05)' } },
         yTotal: { type: 'linear', position: 'right', beginAtZero: true,
-          title: { display: true, text: 'Total Cases', font: { size: 10 } },
+          ticks: { font: { size: 9 }, color: '#aaa' },
           grid: { drawOnChartArea: false } },
       },
     },
@@ -546,12 +553,11 @@ filterPill.addEventListener('click', () => {
           label: 'Avg Waiting Days',
           data: avgWait,
           borderColor: '#9C6EA0',
-          backgroundColor: 'rgba(156,110,160,0.08)',
+          backgroundColor: 'transparent',
           borderWidth: 2,
-          pointRadius: 3,
-          pointStyle: 'circle',
+          pointRadius: 0,
           tension: 0.3,
-          fill: true,
+          fill: false,
           spanGaps: true,
         }],
       },
@@ -561,56 +567,57 @@ filterPill.addEventListener('click', () => {
         plugins: {
           legend: { display: false },
           tooltip: { mode: 'index', intersect: false, callbacks: {
-            label: function(ctx) { return 'Avg wait: ' + (ctx.parsed.y !== null ? ctx.parsed.y + ' days' : 'N/A'); },
+            label: function(ctx) { return 'Avg wait: ' + (ctx.parsed.y !== null ? ctx.parsed.y + 'd' : 'N/A'); },
           } },
           annotation: { annotations: {
             covid: {
               type: 'line', scaleID: 'x',
               value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2020'); }),
-              borderColor: 'rgba(180,0,0,0.55)', borderWidth: 1.5,
-              borderDash: [5, 4],
-              label: { content: '🦠 COVID-19', display: true, position: 'end',
-                font: { size: 10 }, color: 'rgba(180,0,0,0.8)',
-                backgroundColor: 'rgba(255,255,255,0.75)', padding: 4 },
+              borderColor: 'rgba(180,0,0,0.3)', borderWidth: 1,
+              borderDash: [4, 4],
+              label: { content: 'COVID-19', display: true, position: 'end',
+                font: { size: 9 }, color: 'rgba(180,0,0,0.45)',
+                backgroundColor: 'transparent', padding: 2 },
             },
-            obama: {
-              type: 'box', xScaleID: 'x',
-              xMin: 0,
-              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
-              backgroundColor: 'rgba(33,150,243,0.07)', borderWidth: 0,
-              label: { content: 'Obama', display: true, position: { x: 'center', y: 'start' },
-                font: { size: 10, style: 'italic' }, color: 'rgba(33,150,243,0.6)' },
+            t1start: {
+              type: 'line', scaleID: 'x',
+              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
+              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
+              label: { content: 'Trump I', display: true, position: 'start',
+                font: { size: 9, style: 'italic' }, color: '#bbb',
+                backgroundColor: 'transparent', padding: 2 },
             },
-            trump1: {
-              type: 'box', xScaleID: 'x',
-              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2017'); }),
-              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
-              backgroundColor: 'rgba(244,67,54,0.07)', borderWidth: 0,
-              label: { content: 'Trump I', display: true, position: { x: 'center', y: 'start' },
-                font: { size: 10, style: 'italic' }, color: 'rgba(244,67,54,0.6)' },
+            bidenstart: {
+              type: 'line', scaleID: 'x',
+              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
+              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
+              label: { content: 'Biden', display: true, position: 'start',
+                font: { size: 9, style: 'italic' }, color: '#bbb',
+                backgroundColor: 'transparent', padding: 2 },
             },
-            biden: {
-              type: 'box', xScaleID: 'x',
-              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2021'); }),
-              xMax: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
-              backgroundColor: 'rgba(33,150,243,0.07)', borderWidth: 0,
-              label: { content: 'Biden', display: true, position: { x: 'center', y: 'start' },
-                font: { size: 10, style: 'italic' }, color: 'rgba(33,150,243,0.6)' },
-            },
-            trump2: {
-              type: 'box', xScaleID: 'x',
-              xMin: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
-              xMax: mLabels.length - 1,
-              backgroundColor: 'rgba(244,67,54,0.07)', borderWidth: 0,
-              label: { content: 'Trump II', display: true, position: { x: 'center', y: 'start' },
-                font: { size: 10, style: 'italic' }, color: 'rgba(244,67,54,0.6)' },
+            t2start: {
+              type: 'line', scaleID: 'x',
+              value: mLabels.findIndex(function(l) { return l.includes('Jan') && l.includes('2025'); }),
+              borderColor: 'rgba(0,0,0,0.1)', borderWidth: 1, borderDash: [2, 4],
+              label: { content: 'Trump II', display: true, position: 'start',
+                font: { size: 9, style: 'italic' }, color: '#bbb',
+                backgroundColor: 'transparent', padding: 2 },
             },
           } },
         },
         scales: {
-          x: { ticks: { font: { size: 10 } } },
-          y: { beginAtZero: true, title: { display: true, text: 'Avg Days', font: { size: 10 } },
-            ticks: { callback: function(v) { return v + 'd'; } } },
+          x: {
+            ticks: { font: { size: 9 }, color: '#aaa',
+              callback: function(val, i) {
+                const l = mLabels[i] || '';
+                return (l.startsWith('Jan') || l.startsWith('May') || l.startsWith('Sep')) ? l : '';
+              }
+            },
+            grid: { color: 'rgba(0,0,0,0.04)', drawTicks: false },
+          },
+          y: { beginAtZero: true,
+            ticks: { font: { size: 9 }, color: '#aaa', callback: function(v) { return v + 'd'; } },
+            grid: { color: 'rgba(0,0,0,0.05)' } },
         },
       },
     });
