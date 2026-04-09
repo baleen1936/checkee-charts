@@ -230,6 +230,7 @@ def generate_html(data, updated):
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Checkee.info — Daily Visa Case Charts</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js"></script>
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background: #f5f5f5; font-family: Arial, sans-serif; }}
@@ -747,6 +748,17 @@ filterPill.addEventListener('click', () => {{
             }},
           }},
         }},
+        annotation: {{ annotations: {{
+          covid: {{
+            type: 'line', scaleID: 'x',
+            value: mLabels.findIndex(function(l) {{ return l.includes('Mar') && l.includes('2020'); }}),
+            borderColor: 'rgba(180,0,0,0.55)', borderWidth: 1.5,
+            borderDash: [5, 4],
+            label: {{ content: '🦠 COVID-19', display: true, position: 'start',
+              font: {{ size: 10 }}, color: 'rgba(180,0,0,0.8)',
+              backgroundColor: 'rgba(255,255,255,0.75)', padding: 4 }},
+          }},
+        }} }},
       }},
       scales: {{
         x: {{ stacked: true, ticks: {{ font: {{ size: 10 }} }} }},
@@ -792,6 +804,17 @@ filterPill.addEventListener('click', () => {{
           legend: {{ display: false }},
           tooltip: {{ mode: 'index', intersect: false, callbacks: {{
             label: function(ctx) {{ return 'Avg wait: ' + (ctx.parsed.y !== null ? ctx.parsed.y + ' days' : 'N/A'); }},
+          }} }},
+          annotation: {{ annotations: {{
+            covid: {{
+              type: 'line', scaleID: 'x',
+              value: mLabels.findIndex(function(l) {{ return l.includes('Mar') && l.includes('2020'); }}),
+              borderColor: 'rgba(180,0,0,0.55)', borderWidth: 1.5,
+              borderDash: [5, 4],
+              label: {{ content: '🦠 COVID-19', display: true, position: 'start',
+                font: {{ size: 10 }}, color: 'rgba(180,0,0,0.8)',
+                backgroundColor: 'rgba(255,255,255,0.75)', padding: 4 }},
+            }},
           }} }},
         }},
         scales: {{
