@@ -309,7 +309,7 @@ const groups = [
 
 // Status colors (defined early so updateAllCharts can reference them)
 const statusColors = {{}};
-const palette = ['#6EAF8B','#C0614A','#8FA8C8','#C4863A','#C07A8A','#5C7A8C','#8CAABB','#C4A835'];
+const palette = ['#5A8A6A','#A05545','#7A96B8','#8A7060','#A86878','#4E6A7A','#7A9AAA','#A09030'];
 (DATA.complete_dist.statuses || []).forEach((s, i) => {{
   statusColors[s] = palette[i % palette.length];
 }});
@@ -422,9 +422,9 @@ function updateAllCharts(records) {{
     const statsEl = chart.canvas.closest('.card').querySelector('.stats');
     if (statsEl) statsEl.innerHTML =
       '<span>n=<b style="color:#555">' + (s.total || 0) + '</b></span>' +
-      '<span>med <b style="color:#C4863A">' + (s.med || 0) + 'd</b></span>' +
-      '<span>min <b style="color:#27ae60">' + (s.min || 0) + 'd</b></span>' +
-      '<span>max <b style="color:#e74c3c">' + (s.max || 0) + 'd</b></span>';
+      '<span>med <b style="color:#8A7060">' + (s.med || 0) + 'd</b></span>' +
+      '<span>min <b style="color:#5A8A6A">' + (s.min || 0) + 'd</b></span>' +
+      '<span>max <b style="color:#B05A4A">' + (s.max || 0) + 'd</b></span>';
   }});
 
   // Waiting days chart
@@ -467,9 +467,9 @@ groups.forEach((g, i) => {{
     '<canvas id="c' + i + '"></canvas>' +
     '<div class="stats">' +
       '<span>n=<b style="color:#555">' + s.total + '</b></span>' +
-      '<span>med <b style="color:#C4863A">' + s.med + 'd</b></span>' +
-      '<span>min <b style="color:#27ae60">' + s.min + 'd</b></span>' +
-      '<span>max <b style="color:#e74c3c">' + s.max + 'd</b></span>' +
+      '<span>med <b style="color:#8A7060">' + s.med + 'd</b></span>' +
+      '<span>min <b style="color:#5A8A6A">' + s.min + 'd</b></span>' +
+      '<span>max <b style="color:#B05A4A">' + s.max + 'd</b></span>' +
     '</div>';
   grid.appendChild(card);
 
@@ -532,7 +532,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
       }},
       {{
         data: DATA.dates.map(d => dstat0[d] ? dstat0[d][0] : null),
-        borderColor: '#C4863A',
+        borderColor: '#8A7060',
         backgroundColor: 'transparent',
         borderWidth: 2,
         pointRadius: 0,
@@ -612,42 +612,17 @@ const consDist   = DATA.consulate_dist || {{}};
 const consLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
 const consValues = consLabels.map(k => consDist[k]);
 
-// City-vibe pastel mapping — medium-saturation tones inspired by each city's character
+// Muted qualitative palette — 14 calm tones, hash-assigned per consulate
 function consPastel(name) {{
-  const n = name.toLowerCase();
-  if (n.includes('beijing'))            return '#EF9A9A'; // imperial rose
-  if (n.includes('shanghai'))           return '#CE93D8'; // cosmopolitan mauve
-  if (n.includes('guangzhou'))          return '#FFCC80'; // cantonese amber
-  if (n.includes('chengdu'))            return '#A5D6A7'; // panda sage
-  if (n.includes('shenyang'))           return '#90CAF9'; // manchurian sky
-  if (n.includes('wuhan'))              return '#FFF176'; // yellow crane gold
-  if (n.includes('chongqing'))          return '#FFAB91'; // hot-pot terracotta
-  if (n.includes('nanjing'))            return '#B39DDB'; // ancient-capital lavender
-  if (n.includes('hong kong') || n.includes('hongkong')) return '#F48FB1'; // neon-nights pink
-  if (n.includes('fuzhou'))             return '#80DEEA'; // coastal cyan
-  if (n.includes('qingdao'))            return '#80CBC4'; // ocean teal
-  if (n.includes('harbin'))             return '#81D4FA'; // ice-festival blue
-  if (n.includes('kunming'))            return '#C5E1A5'; // spring-city green
-  if (n.includes('taipei'))             return '#FF80AB'; // night-market sakura
-  if (n.includes('seoul'))              return '#BA68C8'; // k-beauty violet
-  if (n.includes('tokyo'))              return '#F8BBD0'; // cherry blossom
-  if (n.includes('osaka'))              return '#FFA726'; // takoyaki amber
-  if (n.includes('mumbai') || n.includes('bombay')) return '#FFB74D'; // saffron
-  if (n.includes('delhi') || n.includes('new delhi')) return '#AED581'; // garden green
-  if (n.includes('hyderabad'))          return '#4DD0E1'; // biryani teal
-  if (n.includes('chennai'))            return '#FF8A65'; // warm spice coral
-  if (n.includes('kolkata') || n.includes('calcutta')) return '#FFE082'; // marigold
-  if (n.includes('singapore'))          return '#FFD54F'; // tropical gold
-  if (n.includes('bangkok') || n.includes('thailand')) return '#FFD740'; // golden temple
-  if (n.includes('manila') || n.includes('philippine')) return '#F06292'; // island pink
-  if (n.includes('london'))             return '#90A4AE'; // foggy steel
-  if (n.includes('paris'))              return '#FFD180'; // city-of-lights gold
-  if (n.includes('frankfurt'))          return '#B0BEC5'; // bauhaus grey
-  if (n.includes('toronto'))            return '#64B5F6'; // clear lake blue
-  if (n.includes('sydney'))             return '#4DB6AC'; // harbour teal
-  if (n.includes('mexico'))             return '#FFCA28'; // dia-de-los-muertos gold
-  if (n.includes('lima') || n.includes('peru')) return '#C8E6C9'; // andean green
-  return '#B0BEC5'; // neutral fallback
+  const muted14 = [
+    '#7B9DC4','#6A9E7A','#B07B7B','#A07BB0',
+    '#C4A56A','#7BAAB0','#9B8B75','#8A9B7B',
+    '#B08A6A','#7B8FB0','#A07B90','#9B7BB0',
+    '#7BA090','#B09B6A'
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return muted14[h % muted14.length];
 }}
 const consColors = consLabels.map(name => consPastel(name));
 
@@ -735,9 +710,9 @@ filterPill.addEventListener('click', () => {{
     data: {{
       labels: mLabels,
       datasets: [
-        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#6EAF8B', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#C0614A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#8FA8C8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#5A8A6A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#A05545', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#7A96B8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
         {{ type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, pointStyle: 'circle', tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' }},
       ],
     }},
@@ -796,8 +771,8 @@ filterPill.addEventListener('click', () => {{
         datasets: [{{
           label: 'Avg Waiting Days',
           data: avgWait,
-          borderColor: '#C4863A',
-          backgroundColor: 'rgba(196,134,58,0.08)',
+          borderColor: '#8A7060',
+          backgroundColor: 'rgba(138,112,96,0.08)',
           borderWidth: 2,
           pointRadius: 3,
           pointStyle: 'circle',
