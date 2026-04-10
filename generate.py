@@ -604,78 +604,78 @@ const entryCard = document.createElement('div');
 entryCard.className = 'card';
 entryCard.innerHTML =
   '<h3>Consulate Distribution (All Visa Types)</h3>' +
-  '<canvas id="cEntry"></canvas>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">click a slice · click again to reset</span></div>';
+  '<canvas id="cEntry" style="max-height:240px"></canvas>' +
+  '<div class="stats"><span style="color:#aaa;font-size:10px">click a bar · click again to reset</span></div>';
 grid.appendChild(entryCard);
 
 const consDist   = DATA.consulate_dist || {{}};
-const consLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
+const consAllLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
+const TOP_N = 10;
+const consLabels = consAllLabels.slice(0, TOP_N);
 const consValues = consLabels.map(k => consDist[k]);
-
-// 12-color qualitative palette: evenly-spaced hues, consistent saturation
-function consPastel(name) {{
-  const qual12 = [
-    '#4B6CB7','#3A9E78','#C25B52','#9060B8',
-    '#C87C30','#3A96A0','#8A6040','#6A9040',
-    '#C05078','#4A70C0','#A06840','#5A9E80'
-  ];
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return qual12[h % qual12.length];
-}}
-const consColors = consLabels.map(name => consPastel(name));
+const consTotal  = Object.values(consDist).reduce((a, b) => a + b, 0);
+const consColors = consLabels.map(() => '#4E79A7');
+const consColorsActive = consLabels.map(() => '#4E79A7');
 
 chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
-  type: 'pie',
+  type: 'bar',
   data: {{
     labels: consLabels,
     datasets: [{{
       data: consValues,
-      backgroundColor: [...consColors],
-      borderWidth: 1,
-      borderColor: '#fff',
+      backgroundColor: consColors.map(c => c + 'CC'),
+      hoverBackgroundColor: consColors,
+      borderWidth: 0,
+      borderRadius: 3,
     }}]
   }},
   options: {{
+    indexAxis: 'y',
     responsive: true,
-    aspectRatio: 2,
+    maintainAspectRatio: false,
     onClick: (evt, elements) => {{
       if (!elements.length) return;
       const consulate = consLabels[elements[0].index];
-
       if (activeConsulate === consulate) {{
-        // Reset: show all data
         activeConsulate = null;
         filterPill.style.display = 'none';
         filterPill.classList.remove('active');
-        chartInstances['cEntry'].data.datasets[0].backgroundColor = [...consColors];
+        chartInstances['cEntry'].data.datasets[0].backgroundColor = consColors.map(c => c + 'CC');
         chartInstances['cEntry'].update();
         updateAllCharts(DATA.raw_records);
       }} else {{
-        // Apply filter
         activeConsulate = consulate;
         filterPill.textContent = '✕  ' + consulate;
         filterPill.style.display = 'block';
         filterPill.classList.add('active');
-        // Dim non-selected slices (append '44' alpha to 7-char hex)
         chartInstances['cEntry'].data.datasets[0].backgroundColor =
-          consColors.map((c, i) => consLabels[i] === consulate ? c : c + '44');
+          consLabels.map((l, i) => l === consulate ? consColors[i] : consColors[i] + '33');
         chartInstances['cEntry'].update();
         updateAllCharts(DATA.raw_records.filter(r => r[5] === consulate));
       }}
     }},
     plugins: {{
-      legend: {{ position: 'bottom', labels: {{ font: {{ size: 9 }}, padding: 6 }} }},
+      legend: {{ display: false }},
       tooltip: {{
         callbacks: {{
           label: (ctx) => {{
-            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-            const pct = ((ctx.parsed / total) * 100).toFixed(1);
-            return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+            const pct = ((ctx.parsed.x / consTotal) * 100).toFixed(1);
+            return ctx.parsed.x + ' cases (' + pct + '%)';
           }}
         }}
       }}
-    }}
+    }},
+    scales: {{
+      x: {{
+        beginAtZero: true,
+        grid: {{ color: 'rgba(0,0,0,0.05)' }},
+        ticks: {{ font: {{ size: 9 }}, color: '#aaa' }},
+      }},
+      y: {{
+        grid: {{ display: false }},
+        ticks: {{ font: {{ size: 10 }}, color: '#555' }},
+      }},
+    }},
   }}
 }});
 
@@ -685,7 +685,7 @@ filterPill.addEventListener('click', () => {{
   activeConsulate = null;
   filterPill.style.display = 'none';
   filterPill.classList.remove('active');
-  chartInstances['cEntry'].data.datasets[0].backgroundColor = [...consColors];
+  chartInstances['cEntry'].data.datasets[0].backgroundColor = consColors.map(c => c + 'CC');
   chartInstances['cEntry'].update();
   updateAllCharts(DATA.raw_records);
 }});
