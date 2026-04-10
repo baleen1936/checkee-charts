@@ -705,22 +705,14 @@ filterPill.addEventListener('click', () => {{
   }});
   const pct = function(arr, i) {{ return monthly.total[i] ? +(arr[i] / monthly.total[i] * 100).toFixed(1) : 0; }};
   new Chart(document.getElementById('cMonthly'), {{
-    type: 'line',
+    type: 'bar',
     data: {{
       labels: mLabels,
       datasets: [
-        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}),
-          borderColor: '#9DB0C8', backgroundColor: 'rgba(157,176,200,0.25)',
-          borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: 'origin', order: 3 }},
-        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i) + pct(monthly.pending,i); }}),
-          borderColor: '#D4635A', backgroundColor: 'rgba(212,99,90,0.25)',
-          borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: '-1', order: 2 }},
-        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i) + pct(monthly.reject,i) + pct(monthly.pending,i); }}),
-          borderColor: '#54A06B', backgroundColor: 'rgba(84,160,107,0.25)',
-          borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: '-1', order: 1 }},
-        {{ label: 'Total Cases', data: monthly.total,
-          borderColor: '#1e293b', backgroundColor: 'transparent',
-          borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, order: 0, yAxisID: 'yTotal' }},
+        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#54A06B', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#D4635A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#9DB0C8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' }},
       ],
     }},
     options: {{
@@ -732,11 +724,10 @@ filterPill.addEventListener('click', () => {{
           mode: 'index', intersect: false,
           callbacks: {{
             label: function(ctx) {{
-              if (ctx.dataset.yAxisID === 'yTotal') return 'Total: ' + ctx.parsed.y;
+              if (ctx.dataset.type === 'line') return 'Total: ' + ctx.parsed.y;
               const i = ctx.dataIndex;
               const abs = {{ 'Clear': monthly.clear[i], 'Reject': monthly.reject[i], 'Pending': monthly.pending[i] }}[ctx.dataset.label] ?? '';
-              const p = {{ 'Clear': pct(monthly.clear,i), 'Reject': pct(monthly.reject,i), 'Pending': pct(monthly.pending,i) }}[ctx.dataset.label] ?? 0;
-              return ctx.dataset.label + ': ' + p + '% (' + abs + ')';
+              return ctx.dataset.label + ': ' + ctx.parsed.y + '% (' + abs + ')';
             }},
           }},
         }},
@@ -753,15 +744,15 @@ filterPill.addEventListener('click', () => {{
         }} }},
       }},
       scales: {{
-        x: {{
-          ticks: {{ font: {{ size: 9 }}, color: '#aaa',
+        x: {{ stacked: true,
+          ticks: {{ font: {{ size: 9 }}, color: '#aaa', maxRotation: 45,
             callback: function(val, i) {{
               const l = mLabels[i] || '';
               return l.startsWith('Jan') ? l : '';
             }}
           }},
-          grid: {{ color: 'rgba(0,0,0,0.04)', drawTicks: false }} }},
-        y: {{ min: 0, max: 100,
+          grid: {{ display: false }} }},
+        yPct: {{ type: 'linear', position: 'left', stacked: true, min: 0, max: 100,
           ticks: {{ font: {{ size: 9 }}, color: '#aaa', callback: function(v) {{ return v + '%'; }} }},
           grid: {{ color: 'rgba(0,0,0,0.05)' }} }},
         yTotal: {{ type: 'linear', position: 'right', beginAtZero: true,
