@@ -709,9 +709,9 @@ filterPill.addEventListener('click', () => {{
     data: {{
       labels: mLabels,
       datasets: [
-        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#54A06B', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#D4635A', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
-        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#9DB0C8', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Clear',   data: monthly.months.map(function(_,i){{ return pct(monthly.clear,i);   }}), backgroundColor: '#8FC9A0', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Reject',  data: monthly.months.map(function(_,i){{ return pct(monthly.reject,i);  }}), backgroundColor: '#E89E98', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
+        {{ label: 'Pending', data: monthly.months.map(function(_,i){{ return pct(monthly.pending,i); }}), backgroundColor: '#BDD0E4', stack: 'stack', order: 2, pointStyle: 'rect', yAxisID: 'yPct' }},
         {{ type: 'line', label: 'Total Cases', data: monthly.total, borderColor: '#1e293b', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false, order: 1, yAxisID: 'yTotal' }},
       ],
     }},
