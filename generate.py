@@ -250,7 +250,7 @@ def generate_html(data, updated):
   .filter-pill.active {{ background: #d97706; color: #fff; border-color: #d97706; }}
   .filter-pill:hover {{ background: #fde68a; }}
   .filter-pill.active:hover {{ background: #b45309; }}
-  .grid  {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: start; }}
+  .grid  {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: stretch; }}
   .monthly-wrap {{ padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; }}
   .card {{ background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }}
   .card h3 {{ text-align: center; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }}
@@ -513,7 +513,7 @@ const waitCard = document.createElement('div');
 waitCard.className = 'card';
 waitCard.innerHTML =
   '<h3>Waiting Days (All Visa Types)</h3>' +
-  '<canvas id="cWait"></canvas>' +
+  '<canvas id="cWait" style="height:200px"></canvas>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = median</span></div>';
 grid.appendChild(waitCard);
 
@@ -578,7 +578,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
 // ── Card 7: issue date distribution (appended before waitCard) ────────────────
 const cdCard = document.createElement('div');
 cdCard.className = 'card';
-cdCard.innerHTML = '<h3>Issue Date Distribution (All Visa Types)</h3><canvas id="cCD"></canvas>' +
+cdCard.innerHTML = '<h3>Issue Date Distribution (All Visa Types)</h3><canvas id="cCD" style="height:200px"></canvas>' +
   '<div class="stats" id="cdStats"></div>';
 grid.insertBefore(cdCard, waitCard);
 
@@ -628,7 +628,7 @@ const entryCard = document.createElement('div');
 entryCard.className = 'card';
 entryCard.innerHTML =
   '<h3>Consulate Distribution (All Visa Types)</h3>' +
-  '<canvas id="cEntry" style="max-height:240px"></canvas>' +
+  '<canvas id="cEntry" style="height:200px"></canvas>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">click a bar · click again to reset</span></div>';
 grid.appendChild(entryCard);
 
