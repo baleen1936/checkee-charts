@@ -474,7 +474,7 @@ groups.forEach((g, i) => {{
   card.className = 'card';
   card.innerHTML =
     '<h3>' + g.label + ' (' + g.visas.join(', ') + ')</h3>' +
-    '<canvas id="c' + i + '"></canvas>' +
+    '<div style="position:relative;height:200px"><canvas id="c' + i + '"></canvas></div>' +
     '<div class="stats">' +
       '<span>n=<b style="color:#555">' + s.total + '</b></span>' +
       '<span>med <b style="color:#888">' + s.med + 'd</b></span>' +
@@ -496,6 +496,7 @@ groups.forEach((g, i) => {{
     }},
     options: {{
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {{
         legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
         tooltip: {{ mode: 'index', intersect: false }}
