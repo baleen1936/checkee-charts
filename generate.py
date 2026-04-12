@@ -569,12 +569,14 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
 const cdCard = document.createElement('div');
 cdCard.className = 'card';
 cdCard.innerHTML = '<h3>Issue Date Distribution (All Visa Types)</h3><canvas id="cCD"></canvas>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">stacked bars = status by issue date</span></div>';
+  '<div class="stats" id="cdStats"></div>';
 grid.insertBefore(cdCard, waitCard);
 
 const cd = DATA.complete_dist;
 const cdTotals = cd.dates.map(d => (cd.statuses || []).reduce((s, st) => s + ((cd.counts[st] || {{}})[d] || 0), 0));
 const cdAvg = cdTotals.length ? +(cdTotals.reduce((a, b) => a + b, 0) / cdTotals.length).toFixed(1) : 0;
+document.getElementById('cdStats').innerHTML =
+  '<span style="color:#aaa;font-size:10px">stacked bars = status by issue date &nbsp;·&nbsp; <b style="color:#1e293b">- - -</b> avg ' + cdAvg + ' cases/day</span>';
 chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
   type: 'bar',
   data: {{
@@ -600,13 +602,7 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
           borderColor: '#1e293b',
           borderWidth: 1.5,
           borderDash: [6, 3],
-          label: {{
-            content: 'Avg ' + cdAvg + '/day',
-            display: true, position: 'end',
-            font: {{ size: 9 }}, color: '#1e293b',
-            backgroundColor: 'rgba(255,255,255,0.85)',
-            padding: {{ x: 4, y: 2 }}, borderRadius: 2,
-          }},
+          label: {{ display: false }},
         }},
       }} }},
     }},
