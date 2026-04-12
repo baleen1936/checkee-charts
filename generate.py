@@ -579,34 +579,36 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
   type: 'bar',
   data: {{
     labels: cd.dates,
-    datasets: [
-      ...(cd.statuses || []).map(s => ({{
-        label: s,
-        data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
-        backgroundColor: statusColors[s],
-        stack: 'stack',
-        order: 2,
-        pointStyle: 'rect',
-      }})),
-      {{
-        type: 'line',
-        label: 'Daily Avg (' + cdAvg + ')',
-        data: cd.dates.map(() => cdAvg),
-        borderColor: '#1e293b',
-        backgroundColor: 'transparent',
-        borderWidth: 1.5,
-        borderDash: [6, 3],
-        pointRadius: 0,
-        fill: false,
-        order: 1,
-      }},
-    ],
+    datasets: (cd.statuses || []).map(s => ({{
+      label: s,
+      data: cd.dates.map(d => (cd.counts[s] || {{}})[d] || 0),
+      backgroundColor: statusColors[s],
+      stack: 'stack',
+      order: 1,
+      pointStyle: 'rect',
+    }})),
   }},
   options: {{
     responsive: true,
     plugins: {{
       legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6, usePointStyle: true }} }},
-      tooltip: {{ mode: 'index', intersect: false }}
+      tooltip: {{ mode: 'index', intersect: false }},
+      annotation: {{ annotations: {{
+        avgLine: {{
+          type: 'line',
+          yMin: cdAvg, yMax: cdAvg,
+          borderColor: '#1e293b',
+          borderWidth: 1.5,
+          borderDash: [6, 3],
+          label: {{
+            content: 'Avg ' + cdAvg + '/day',
+            display: true, position: 'end',
+            font: {{ size: 9 }}, color: '#1e293b',
+            backgroundColor: 'rgba(255,255,255,0.85)',
+            padding: {{ x: 4, y: 2 }}, borderRadius: 2,
+          }},
+        }},
+      }} }},
     }},
     scales: {{
       x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
