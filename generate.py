@@ -250,7 +250,7 @@ def generate_html(data, updated):
   .filter-pill.active {{ background: #d97706; color: #fff; border-color: #d97706; }}
   .filter-pill:hover {{ background: #fde68a; }}
   .filter-pill.active:hover {{ background: #b45309; }}
-  .grid  {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: stretch; }}
+  .grid  {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: start; }}
   .monthly-wrap {{ padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; }}
   .card {{ background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }}
   .card h3 {{ text-align: center; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }}
