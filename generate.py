@@ -451,6 +451,16 @@ function updateAllCharts(records) {{
       order: 1,
       pointStyle: 'rect',
     }}));
+    // Recalculate avg and update annotation + footer
+    const dynTotals = cd.dates.map(d => (cd.statuses || []).reduce((s, st) => s + ((cd.counts[st] || {{}})[d] || 0), 0));
+    const dynAvg = dynTotals.length ? +(dynTotals.reduce((a, b) => a + b, 0) / dynTotals.length).toFixed(1) : 0;
+    if (cdc.options.plugins.annotation && cdc.options.plugins.annotation.annotations.avgLine) {{
+      cdc.options.plugins.annotation.annotations.avgLine.yMin = dynAvg;
+      cdc.options.plugins.annotation.annotations.avgLine.yMax = dynAvg;
+    }}
+    const cdStats = document.getElementById('cdStats');
+    if (cdStats) cdStats.innerHTML =
+      '<span style="color:#aaa;font-size:10px">stacked bars = status by issue date &nbsp;·&nbsp; <b style="color:#1e293b">- - -</b> avg ' + dynAvg + ' cases/day</span>';
     cdc.update();
   }}
   _currentTableRecords = records;
