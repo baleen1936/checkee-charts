@@ -555,6 +555,7 @@ chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
   options: {{
     responsive: true,
     plugins: {{
+    maintainAspectRatio: false,
       legend: {{ display: false }},
       tooltip: {{
         mode: 'index',
@@ -603,6 +604,7 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
   }},
   options: {{
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {{
       legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6, usePointStyle: true }} }},
       tooltip: {{ mode: 'index', intersect: false }},
