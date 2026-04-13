@@ -4,7 +4,7 @@ Auto-updated US visa administrative processing dashboard, sourced from [checkee.
 
 **Live dashboard → https://baleen1936.github.io/checkee-charts**
 
-![Dashboard Screenshot](screenshot.png)
+![Dashboard Screenshot](screenshot.png?v=2)
 
 ## What it shows
 
