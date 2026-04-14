@@ -137,6 +137,7 @@ def build_data(records, monthly):
     complete_status_counts = defaultdict(lambda: defaultdict(int))  # complete_date -> status -> count
     entry_counts = defaultdict(int)
     consulate_counts = defaultdict(int)
+    consulate_days = defaultdict(list)
 
     for r in records:
         counts[r["visa"]][r["date"]] += 1
@@ -153,6 +154,7 @@ def build_data(records, monthly):
             entry_counts[r["entry"]] += 1
         if r["consulate"]:
             consulate_counts[r["consulate"]] += 1
+            consulate_days[r["consulate"]].append(r["days"])
 
     groups_visas = [["B1", "B2"], ["F1", "F2"], ["H1", "H4"], ["J1", "J2"], ["L1", "L2"], ["O1"]]
     stats = {}
@@ -207,6 +209,10 @@ def build_data(records, monthly):
         for r in records
     ]
 
+    clear_days_all = [r["days"] for r in records if r["status"] == "Clear"]
+    total_count = len(records)
+    clear_count = sum(1 for r in records if r["status"] == "Clear")
+
     return {
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
@@ -216,12 +222,24 @@ def build_data(records, monthly):
         "complete_dist": complete_dist,
         "entry_dist": dict(entry_counts),
         "consulate_dist": dict(consulate_counts),
+        "consulate_median": {k: round(statistics.median(v)) for k, v in consulate_days.items() if v},
         "raw_records": raw_records,
         "monthly": monthly,
+        "summary": {
+            "total": total_count,
+            "clear_pct": round(100 * clear_count / total_count, 1) if total_count else 0,
+            "med_wait": round(statistics.median(clear_days_all)) if clear_days_all else 0,
+        },
     }
 
 
 def generate_html(data, updated):
+    s = data.get("summary", {})
+    summary_html = (
+        f'{s.get("total", 0):,} cases in last 90 days'
+        f' &nbsp;·&nbsp; {s.get("clear_pct", 0)}% eventually cleared'
+        f' &nbsp;·&nbsp; median wait {s.get("med_wait", 0)}d'
+    )
     data_json = json.dumps(data)
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -239,8 +257,9 @@ def generate_html(data, updated):
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ background: #f8f7f4; font-family: 'Inter', Arial, sans-serif; color: #1e293b; }}
   h1 {{ text-align: center; font-size: 24px; font-weight: 700; padding: 24px 0 6px; letter-spacing: -0.3px; color: #1e293b; }}
-  .updated {{ text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 10px; }}
+  .updated {{ text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 4px; }}
   .updated a {{ color: #94a3b8; }}
+  .summary-stats {{ text-align: center; font-size: 12px; color: #64748b; margin-bottom: 14px; }}
   .filter-pill {{
     display: none; margin: 0 auto 14px; width: fit-content;
     background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
@@ -286,6 +305,7 @@ def generate_html(data, updated):
 <body>
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
 <p class="updated">Last updated: {updated} &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
+<p class="summary-stats">{summary_html}</p>
 <div id="filterPill" class="filter-pill"></div>
 <div class="grid" id="grid"></div>
 <div class="monthly-wrap" id="monthlyWrap"></div>
@@ -647,6 +667,24 @@ const consColorsActive = consLabels.map(() => '#4E79A7');
 
 chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
   type: 'bar',
+  plugins: [{{
+    id: 'medianLabels',
+    afterDatasetDraw(chart) {{
+      const {{ctx, data}} = chart;
+      const medians = DATA.consulate_median || {{}};
+      ctx.save();
+      ctx.font = '9px Inter, Arial, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+      data.labels.forEach((label, i) => {{
+        const meta = chart.getDatasetMeta(0);
+        const bar = meta.data[i];
+        const med = medians[label];
+        if (med !== undefined) ctx.fillText(med + 'd', bar.x + 5, bar.y + 4);
+      }});
+      ctx.restore();
+    }}
+  }}],
   data: {{
     labels: consLabels,
     datasets: [{{
@@ -688,7 +726,8 @@ chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
         callbacks: {{
           label: (ctx) => {{
             const pct = ((ctx.parsed.x / consTotal) * 100).toFixed(1);
-            return ctx.parsed.x + ' cases (' + pct + '%)';
+            const med = (DATA.consulate_median || {{}})[consLabels[ctx.dataIndex]];
+            return ctx.parsed.x + ' cases (' + pct + '%)' + (med !== undefined ? ' · median ' + med + 'd wait' : '');
           }}
         }}
       }}
@@ -782,10 +821,12 @@ filterPill.addEventListener('click', () => {{
           grid: {{ display: false }} }},
         yPct: {{ type: 'linear', position: 'left', stacked: true, min: 0, max: 100,
           ticks: {{ font: {{ size: 9 }}, color: '#aaa', callback: function(v) {{ return v + '%'; }} }},
-          grid: {{ color: 'rgba(0,0,0,0.05)' }} }},
+          grid: {{ color: 'rgba(0,0,0,0.05)' }},
+          afterFit: function(axis) {{ axis.width = 42; }} }},
         yTotal: {{ type: 'linear', position: 'right', beginAtZero: true,
           ticks: {{ font: {{ size: 9 }}, color: '#aaa' }},
-          grid: {{ drawOnChartArea: false }} }},
+          grid: {{ drawOnChartArea: false }},
+          afterFit: function(axis) {{ axis.width = 38; }} }},
       }},
     }},
   }});
@@ -878,7 +919,10 @@ filterPill.addEventListener('click', () => {{
           }},
           y: {{ beginAtZero: true,
             ticks: {{ font: {{ size: 9 }}, color: '#aaa', callback: function(v) {{ return v + 'd'; }} }},
-            grid: {{ color: 'rgba(0,0,0,0.05)' }} }},
+            grid: {{ color: 'rgba(0,0,0,0.05)' }},
+            afterFit: function(axis) {{ axis.width = 42; }} }},
+          yRight: {{ type: 'linear', position: 'right', display: false,
+            afterFit: function(axis) {{ axis.width = 38; }} }},
         }},
       }},
     }});
