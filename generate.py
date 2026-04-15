@@ -21,7 +21,7 @@ HEADERS = {
 }
 
 # Use Tor SOCKS5 proxy when running in CI
-PROXIES = {"http": "socks5://127.0.0.1:9050", "https": "socks5://127.0.0.1:9050"} if os.getenv("CI") else None
+PROXIES = {"http": "socks5h://127.0.0.1:9050", "https": "socks5h://127.0.0.1:9050"} if os.getenv("CI") else None
 
 
 def fetch_with_retry(url, retries=4, backoff=15):
