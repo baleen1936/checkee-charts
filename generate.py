@@ -126,7 +126,12 @@ def scrape_monthly():
 
 
 def build_data(records, monthly):
-    dates = sorted(set(r["date"] for r in records))
+    if records:
+        d0 = datetime.strptime(min(r["date"] for r in records), "%Y-%m-%d")
+        d1 = datetime.strptime(max(r["date"] for r in records), "%Y-%m-%d")
+        dates = [(d0 + timedelta(days=i)).strftime("%Y-%m-%d") for i in range((d1 - d0).days + 1)]
+    else:
+        dates = []
 
     counts = defaultdict(lambda: defaultdict(int))
     raw_days = defaultdict(list)
@@ -373,7 +378,16 @@ function buildAgg(records) {{
     }}
   }}
 
-  const dates = [...dateSets].sort();
+  const _sortedDates = [...dateSets].sort();
+  const dates = [];
+  if (_sortedDates.length >= 2) {{
+    const _dStart = new Date(_sortedDates[0] + 'T12:00:00Z');
+    const _dEnd   = new Date(_sortedDates[_sortedDates.length - 1] + 'T12:00:00Z');
+    for (let _d = new Date(_dStart); _d <= _dEnd; _d.setUTCDate(_d.getUTCDate() + 1))
+      dates.push(_d.toISOString().slice(0, 10));
+  }} else {{
+    dates.push(..._sortedDates);
+  }}
 
   const stats = {{}};
   groups.forEach(g => {{
