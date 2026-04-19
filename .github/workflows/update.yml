@@ -2,7 +2,7 @@ name: Update Charts
 
 on:
   schedule:
-    - cron: '0 2,4,6,8 * * *'  # 10am, 12pm, 2pm, 4pm CST (UTC+8)
+    - cron: '0 4 * * *'  # 12pm CST (UTC+8)
   workflow_dispatch:
 
 permissions:
