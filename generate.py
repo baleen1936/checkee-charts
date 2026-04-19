@@ -171,23 +171,15 @@ def build_data(records, monthly):
             "max": max(all_days) if all_days else 0,
         }
 
-    # Per-date new vs renewal breakdown: counts and avg waiting days
+    # New vs Renewal summary totals
     entry_types = sorted(entry_counts.keys())
-    entry_daily = {
-        "types": entry_types,
-        "counts": {
-            et: [len(entry_date_days[et].get(d, [])) for d in dates]
-            for et in entry_types
-        },
-        "avg_days": {
-            et: [
-                round(sum(entry_date_days[et][d]) / len(entry_date_days[et][d]), 1)
-                if entry_date_days[et].get(d) else None
-                for d in dates
-            ]
-            for et in entry_types
-        },
-    }
+    entry_summary = {}
+    for et in entry_types:
+        all_days = [d for dl in entry_date_days[et].values() for d in dl]
+        entry_summary[et] = {
+            "count": len(all_days),
+            "avg_days": round(sum(all_days) / len(all_days), 1) if all_days else 0,
+        }
 
     # Check date distribution: sorted statuses for consistent coloring
     all_statuses = sorted(set(
@@ -226,7 +218,7 @@ def build_data(records, monthly):
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
         "stats": stats,
-        "entry_daily": entry_daily,
+        "entry_summary": entry_summary,
         "check_dist": check_dist,
         "complete_dist": complete_dist,
         "entry_dist": dict(entry_counts),
@@ -364,7 +356,7 @@ function buildAgg(records) {{
   const rawDays = {{}};
   const cscMap = {{}};
   const compMap = {{}};
-  const entryMap = {{}};  // entry_type -> date -> [days]
+  const entryDays = {{}};  // entry_type -> [days]
 
   for (const [date, visa, days, status, checkDate, consulate, entry] of records) {{
     dateSets.add(date);
@@ -381,9 +373,8 @@ function buildAgg(records) {{
       compMap[date][status] = (compMap[date][status] || 0) + 1;
     }}
     if (entry) {{
-      entryMap[entry] = entryMap[entry] || {{}};
-      entryMap[entry][date] = entryMap[entry][date] || [];
-      entryMap[entry][date].push(days);
+      entryDays[entry] = entryDays[entry] || [];
+      entryDays[entry].push(days);
     }}
   }}
 
@@ -410,20 +401,15 @@ function buildAgg(records) {{
     }};
   }});
 
-  // New vs Renewal daily breakdown
-  const _entryTypes = Object.keys(entryMap).sort();
-  const entry_daily = {{
-    types: _entryTypes,
-    counts: Object.fromEntries(_entryTypes.map(et => [
-      et, dates.map(d => (entryMap[et][d] || []).length)
-    ])),
-    avg_days: Object.fromEntries(_entryTypes.map(et => [
-      et, dates.map(d => {{
-        const dl = entryMap[et][d];
-        return dl && dl.length ? +(dl.reduce((a, b) => a + b, 0) / dl.length).toFixed(1) : null;
-      }})
-    ])),
-  }};
+  // New vs Renewal summary totals
+  const _entryTypes = Object.keys(entryDays).sort();
+  const entry_summary = Object.fromEntries(_entryTypes.map(et => {{
+    const dl = entryDays[et] || [];
+    return [et, {{
+      count: dl.length,
+      avg_days: dl.length ? +(dl.reduce((a, b) => a + b, 0) / dl.length).toFixed(1) : 0,
+    }}];
+  }}));
 
   // Use the global status list so colors stay consistent even if a consulate
   // has zero records for some statuses.
@@ -444,7 +430,7 @@ function buildAgg(records) {{
     ])),
   }};
 
-  return {{ dates, counts: countsMap, stats, entry_daily, check_dist, complete_dist }};
+  return {{ dates, counts: countsMap, stats, entry_summary, check_dist, complete_dist }};
 }}
 
 // ── Refresh all charts from a (possibly filtered) record list ─────────────────
@@ -471,20 +457,14 @@ function updateAllCharts(records) {{
       '<span>max <b style="color:#888">' + (s.max || 0) + 'd</b></span>';
   }});
 
-  // New vs Renewal chart
+  // New vs Renewal summary chart
   const wc = chartInstances['cWait'];
   if (wc) {{
-    const ed = agg.entry_daily;
-    wc.data.labels = agg.dates;
-    wc.data.datasets.forEach(ds => {{
-      const et = ds._entryType;
-      if (!et) return;
-      if (ds.type === 'line') {{
-        ds.data = agg.dates.map((d, i) => (ed.avg_days[et] || [])[i] ?? null);
-      }} else {{
-        ds.data = agg.dates.map((d, i) => (ed.counts[et] || [])[i] || 0);
-      }}
-    }});
+    const es = agg.entry_summary;
+    const types = Object.keys(es).sort();
+    wc.data.labels = types;
+    wc.data.datasets[0].data = types.map(et => es[et].count);
+    wc.data.datasets[1].data = types.map(et => es[et].avg_days);
     wc.update();
   }}
 
@@ -559,84 +539,73 @@ groups.forEach((g, i) => {{
   }});
 }});
 
-// ── Card 6: New vs Renewal cases + avg waiting days ──────────────────────────
-const entryBarColors  = {{ 'New': '#4E79A7CC', 'Renewal': '#F28E2BCC' }};
-const entryLineColors = {{ 'New': '#2c5f8a',   'Renewal': '#b45309'   }};
-
+// ── Card 6: New vs Renewal summary — total cases + avg wait ──────────────────
 const waitCard = document.createElement('div');
 waitCard.className = 'card';
 waitCard.innerHTML =
-  '<h3>New vs Renewal — Cases &amp; Avg Wait</h3>' +
+  '<h3>New vs Renewal — Total Cases &amp; Avg Wait</h3>' +
   '<div style="position:relative;height:200px"><canvas id="cWait"></canvas></div>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">bars = case count (left) &nbsp;·&nbsp; lines = avg wait days (right)</span></div>';
+  '<div class="stats"><span style="color:#aaa;font-size:10px">bars = total cases (left) &nbsp;·&nbsp; line = avg wait days (right)</span></div>';
 grid.appendChild(waitCard);
 
 (function() {{
-  const ed = DATA.entry_daily;
-  const types = ed.types || [];
-  const datasets = [];
-  types.forEach(et => {{
-    datasets.push({{
-      type: 'bar',
-      label: et,
-      _entryType: et,
-      data: DATA.dates.map((d, i) => (ed.counts[et] || [])[i] || 0),
-      backgroundColor: entryBarColors[et] || '#99999966',
-      stack: 'stack',
-      yAxisID: 'yCases',
-      order: 2,
-    }});
-  }});
-  types.forEach(et => {{
-    datasets.push({{
-      type: 'line',
-      label: et + ' avg wait',
-      _entryType: et,
-      data: DATA.dates.map((d, i) => (ed.avg_days[et] || [])[i] ?? null),
-      borderColor: entryLineColors[et] || '#555',
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0.3,
-      spanGaps: true,
-      yAxisID: 'yDays',
-      order: 1,
-    }});
-  }});
-
+  const es = DATA.entry_summary || {{}};
+  const types = Object.keys(es).sort();
   chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
-    data: {{ labels: DATA.dates, datasets }},
+    data: {{
+      labels: types,
+      datasets: [
+        {{
+          type: 'bar',
+          label: '# Cases',
+          data: types.map(et => es[et].count),
+          backgroundColor: ['#4E79A7CC', '#F28E2BCC'],
+          yAxisID: 'yCases',
+          order: 2,
+          borderRadius: 4,
+        }},
+        {{
+          type: 'line',
+          label: 'Avg Wait Days',
+          data: types.map(et => es[et].avg_days),
+          borderColor: '#1e293b',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          pointBackgroundColor: ['#2c5f8a', '#b45309'],
+          tension: 0,
+          yAxisID: 'yDays',
+          order: 1,
+        }},
+      ],
+    }},
     options: {{
       responsive: true,
       maintainAspectRatio: false,
       plugins: {{
         legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
         tooltip: {{
-          mode: 'index',
-          intersect: false,
           callbacks: {{
             label: (ctx) => {{
               const v = ctx.parsed.y;
-              if (v === null || v === undefined) return '';
-              return ctx.dataset.type === 'line'
-                ? ctx.dataset.label + ': ' + v + 'd'
-                : ctx.dataset.label + ': ' + v + ' cases';
+              return ctx.dataset.type === 'line' ? 'Avg wait: ' + v + 'd' : 'Cases: ' + v;
             }}
           }}
         }}
       }},
       scales: {{
-        x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
-        yCases: {{ type: 'linear', position: 'left',  stacked: true, beginAtZero: true,
+        x: {{ grid: {{ display: false }}, ticks: {{ font: {{ size: 13, weight: '600' }} }} }},
+        yCases: {{ type: 'linear', position: 'left', beginAtZero: true,
           title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }},
           grid: {{ color: 'rgba(0,0,0,0.05)' }},
-          afterFit: ax => {{ ax.width = 42; }} }},
+          afterFit: ax => {{ ax.width = 52; }} }},
         yDays:  {{ type: 'linear', position: 'right', beginAtZero: true,
           title: {{ display: true, text: 'Avg Wait Days', font: {{ size: 10 }} }},
           grid: {{ drawOnChartArea: false }},
-          afterFit: ax => {{ ax.width = 52; }} }},
-      }}
-    }}
+          afterFit: ax => {{ ax.width = 58; }} }},
+      }},
+    }},
   }});
 }})();
 
