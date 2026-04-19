@@ -135,17 +135,16 @@ def build_data(records, monthly):
 
     counts = defaultdict(lambda: defaultdict(int))
     raw_days = defaultdict(list)
-    day_days = defaultdict(list)
     check_status_counts = defaultdict(lambda: defaultdict(int))  # check_date -> status -> count
     complete_status_counts = defaultdict(lambda: defaultdict(int))  # complete_date -> status -> count
     entry_counts = defaultdict(int)
+    entry_date_days = defaultdict(lambda: defaultdict(list))   # entry_type -> date -> [days]
     consulate_counts = defaultdict(int)
     consulate_days = defaultdict(list)
 
     for r in records:
         counts[r["visa"]][r["date"]] += 1
         raw_days[r["visa"]].append(r["days"])
-        day_days[r["date"]].append(r["days"])
         # Include all valid check dates regardless of how old they are
         cd = r["check_date"]
         if re.match(r"^\d{4}-\d{2}-\d{2}$", cd):
@@ -155,6 +154,7 @@ def build_data(records, monthly):
             complete_status_counts[r["date"]][r["status"]] += 1
         if r["entry"]:
             entry_counts[r["entry"]] += 1
+            entry_date_days[r["entry"]][r["date"]].append(r["days"])
         if r["consulate"]:
             consulate_counts[r["consulate"]] += 1
             consulate_days[r["consulate"]].append(r["days"])
@@ -171,16 +171,23 @@ def build_data(records, monthly):
             "max": max(all_days) if all_days else 0,
         }
 
-    # Per-day stats across all visa types: [median, min, max]
-    daily_stats = {}
-    for date in dates:
-        dl = day_days[date]
-        if dl:
-            daily_stats[date] = [
-                round(statistics.median(dl)),
-                min(dl),
-                max(dl),
+    # Per-date new vs renewal breakdown: counts and avg waiting days
+    entry_types = sorted(entry_counts.keys())
+    entry_daily = {
+        "types": entry_types,
+        "counts": {
+            et: [len(entry_date_days[et].get(d, [])) for d in dates]
+            for et in entry_types
+        },
+        "avg_days": {
+            et: [
+                round(sum(entry_date_days[et][d]) / len(entry_date_days[et][d]), 1)
+                if entry_date_days[et].get(d) else None
+                for d in dates
             ]
+            for et in entry_types
+        },
+    }
 
     # Check date distribution: sorted statuses for consistent coloring
     all_statuses = sorted(set(
@@ -219,7 +226,7 @@ def build_data(records, monthly):
         "dates": dates,
         "counts": {v: dict(d) for v, d in counts.items()},
         "stats": stats,
-        "daily_stats": daily_stats,
+        "entry_daily": entry_daily,
         "check_dist": check_dist,
         "complete_dist": complete_dist,
         "entry_dist": dict(entry_counts),
@@ -355,18 +362,16 @@ function buildAgg(records) {{
   const dateSets = new Set();
   const countsMap = {{}};
   const rawDays = {{}};
-  const dayDays = {{}};
   const cscMap = {{}};
-
   const compMap = {{}};
-  for (const [date, visa, days, status, checkDate] of records) {{
+  const entryMap = {{}};  // entry_type -> date -> [days]
+
+  for (const [date, visa, days, status, checkDate, consulate, entry] of records) {{
     dateSets.add(date);
     countsMap[visa] = countsMap[visa] || {{}};
     countsMap[visa][date] = (countsMap[visa][date] || 0) + 1;
     rawDays[visa] = rawDays[visa] || [];
     rawDays[visa].push(days);
-    dayDays[date] = dayDays[date] || [];
-    dayDays[date].push(days);
     if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}$/.test(checkDate)) {{
       cscMap[checkDate] = cscMap[checkDate] || {{}};
       cscMap[checkDate][status] = (cscMap[checkDate][status] || 0) + 1;
@@ -374,6 +379,11 @@ function buildAgg(records) {{
     if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}$/.test(date)) {{
       compMap[date] = compMap[date] || {{}};
       compMap[date][status] = (compMap[date][status] || 0) + 1;
+    }}
+    if (entry) {{
+      entryMap[entry] = entryMap[entry] || {{}};
+      entryMap[entry][date] = entryMap[entry][date] || [];
+      entryMap[entry][date].push(days);
     }}
   }}
 
@@ -400,17 +410,20 @@ function buildAgg(records) {{
     }};
   }});
 
-  const daily_stats = {{}};
-  for (const date of dates) {{
-    const dl = dayDays[date] || [];
-    if (dl.length) {{
-      daily_stats[date] = [
-        jsMedian(dl),
-        Math.min(...dl),
-        Math.max(...dl),
-      ];
-    }}
-  }}
+  // New vs Renewal daily breakdown
+  const _entryTypes = Object.keys(entryMap).sort();
+  const entry_daily = {{
+    types: _entryTypes,
+    counts: Object.fromEntries(_entryTypes.map(et => [
+      et, dates.map(d => (entryMap[et][d] || []).length)
+    ])),
+    avg_days: Object.fromEntries(_entryTypes.map(et => [
+      et, dates.map(d => {{
+        const dl = entryMap[et][d];
+        return dl && dl.length ? +(dl.reduce((a, b) => a + b, 0) / dl.length).toFixed(1) : null;
+      }})
+    ])),
+  }};
 
   // Use the global status list so colors stay consistent even if a consulate
   // has zero records for some statuses.
@@ -431,7 +444,7 @@ function buildAgg(records) {{
     ])),
   }};
 
-  return {{ dates, counts: countsMap, stats, daily_stats, check_dist, complete_dist }};
+  return {{ dates, counts: countsMap, stats, entry_daily, check_dist, complete_dist }};
 }}
 
 // ── Refresh all charts from a (possibly filtered) record list ─────────────────
@@ -458,14 +471,20 @@ function updateAllCharts(records) {{
       '<span>max <b style="color:#888">' + (s.max || 0) + 'd</b></span>';
   }});
 
-  // Waiting days chart
+  // New vs Renewal chart
   const wc = chartInstances['cWait'];
   if (wc) {{
-    const dstat = agg.daily_stats;
+    const ed = agg.entry_daily;
     wc.data.labels = agg.dates;
-    wc.data.datasets[0].data = agg.dates.map(d => dstat[d] ? dstat[d][1] : null);
-    wc.data.datasets[1].data = agg.dates.map(d => dstat[d] ? dstat[d][2] : null);
-    wc.data.datasets[2].data = agg.dates.map(d => dstat[d] ? dstat[d][0] : null);
+    wc.data.datasets.forEach(ds => {{
+      const et = ds._entryType;
+      if (!et) return;
+      if (ds.type === 'line') {{
+        ds.data = agg.dates.map((d, i) => (ed.avg_days[et] || [])[i] ?? null);
+      }} else {{
+        ds.data = agg.dates.map((d, i) => (ed.counts[et] || [])[i] || 0);
+      }}
+    }});
     wc.update();
   }}
 
@@ -540,73 +559,86 @@ groups.forEach((g, i) => {{
   }});
 }});
 
-// ── Card 6: waiting days area chart ──────────────────────────────────────────
+// ── Card 6: New vs Renewal cases + avg waiting days ──────────────────────────
+const entryBarColors  = {{ 'New': '#4E79A7CC', 'Renewal': '#F28E2BCC' }};
+const entryLineColors = {{ 'New': '#2c5f8a',   'Renewal': '#b45309'   }};
+
 const waitCard = document.createElement('div');
 waitCard.className = 'card';
 waitCard.innerHTML =
-  '<h3>Waiting Days (All Visa Types)</h3>' +
+  '<h3>New vs Renewal — Cases &amp; Avg Wait</h3>' +
   '<div style="position:relative;height:200px"><canvas id="cWait"></canvas></div>' +
-  '<div class="stats"><span style="color:#aaa;font-size:10px">shaded band = min–max &nbsp;·&nbsp; line = median</span></div>';
+  '<div class="stats"><span style="color:#aaa;font-size:10px">bars = case count (left) &nbsp;·&nbsp; lines = avg wait days (right)</span></div>';
 grid.appendChild(waitCard);
 
-const dstat0 = DATA.daily_stats;
-chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
-  type: 'line',
-  data: {{
-    labels: DATA.dates,
-    datasets: [
-      {{
-        data: DATA.dates.map(d => dstat0[d] ? dstat0[d][1] : null),
-        borderColor: 'transparent',
-        backgroundColor: 'rgba(100,170,255,0.18)',
-        pointRadius: 0,
-        fill: '+1',
-        tension: 0.4,
-      }},
-      {{
-        data: DATA.dates.map(d => dstat0[d] ? dstat0[d][2] : null),
-        borderColor: 'rgba(150,190,255,0.45)',
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.4,
-      }},
-      {{
-        data: DATA.dates.map(d => dstat0[d] ? dstat0[d][0] : null),
-        borderColor: '#1e293b',
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.4,
-      }},
-    ]
-  }},
-  options: {{
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {{
-      legend: {{ display: false }},
-      tooltip: {{
-        mode: 'index',
-        intersect: false,
-        callbacks: {{
-          label: (ctx) => {{
-            // Read from chart's live data so filtered values show correctly
-            const val = chartInstances['cWait'].data.datasets[ctx.datasetIndex].data[ctx.dataIndex];
-            if (val === null || val === undefined) return '';
-            return ['Min: ' + val + 'd', 'Max: ' + val + 'd', 'Med: ' + val + 'd'][ctx.datasetIndex];
+(function() {{
+  const ed = DATA.entry_daily;
+  const types = ed.types || [];
+  const datasets = [];
+  types.forEach(et => {{
+    datasets.push({{
+      type: 'bar',
+      label: et,
+      _entryType: et,
+      data: DATA.dates.map((d, i) => (ed.counts[et] || [])[i] || 0),
+      backgroundColor: entryBarColors[et] || '#99999966',
+      stack: 'stack',
+      yAxisID: 'yCases',
+      order: 2,
+    }});
+  }});
+  types.forEach(et => {{
+    datasets.push({{
+      type: 'line',
+      label: et + ' avg wait',
+      _entryType: et,
+      data: DATA.dates.map((d, i) => (ed.avg_days[et] || [])[i] ?? null),
+      borderColor: entryLineColors[et] || '#555',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.3,
+      spanGaps: true,
+      yAxisID: 'yDays',
+      order: 1,
+    }});
+  }});
+
+  chartInstances['cWait'] = new Chart(document.getElementById('cWait'), {{
+    data: {{ labels: DATA.dates, datasets }},
+    options: {{
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {{
+        legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
+        tooltip: {{
+          mode: 'index',
+          intersect: false,
+          callbacks: {{
+            label: (ctx) => {{
+              const v = ctx.parsed.y;
+              if (v === null || v === undefined) return '';
+              return ctx.dataset.type === 'line'
+                ? ctx.dataset.label + ': ' + v + 'd'
+                : ctx.dataset.label + ': ' + v + ' cases';
+            }}
           }}
         }}
+      }},
+      scales: {{
+        x: {{ stacked: true, ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
+        yCases: {{ type: 'linear', position: 'left',  stacked: true, beginAtZero: true,
+          title: {{ display: true, text: '# Cases', font: {{ size: 10 }} }},
+          grid: {{ color: 'rgba(0,0,0,0.05)' }},
+          afterFit: ax => {{ ax.width = 42; }} }},
+        yDays:  {{ type: 'linear', position: 'right', beginAtZero: true,
+          title: {{ display: true, text: 'Avg Wait Days', font: {{ size: 10 }} }},
+          grid: {{ drawOnChartArea: false }},
+          afterFit: ax => {{ ax.width = 52; }} }},
       }}
-    }},
-    scales: {{
-      x: {{ ticks: {{ maxRotation: 60, font: {{ size: 8 }} }} }},
-      y: {{ beginAtZero: false, title: {{ display: true, text: 'Wait Days', font: {{ size: 10 }} }} }}
     }}
-  }}
-}});
+  }});
+}})();
 
 // ── Card 7: issue date distribution (appended before waitCard) ────────────────
 const cdCard = document.createElement('div');
