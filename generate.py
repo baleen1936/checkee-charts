@@ -5,7 +5,9 @@ import requests
 from bs4 import BeautifulSoup
 from collections import defaultdict
 import json
+import os
 import re
+import shutil
 import statistics
 import time
 from datetime import datetime, timezone, timedelta
@@ -128,14 +130,9 @@ def load_cached_records(html_path="index.html"):
     return records
 
 
-def scrape_with_selenium():
-    """Use a non-headless Chrome session (with copied profile) to submit the 90-day form on checkee.info.
-    Bypasses Cloudflare because a real Chrome profile with valid cookies is used."""
-    from selenium import webdriver
+def build_chrome_options():
+    """Create Chrome options backed by a copied local profile."""
     from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import Select as SeleniumSelect
-    import shutil, os
 
     # Copy Chrome profile so we get existing CF cookies without touching the live profile.
     # Skip if a recent copy already exists (avoids re-copying on every run).
@@ -171,8 +168,17 @@ def scrape_with_selenium():
     opts.add_experimental_option("useAutomationExtension", False)
     # Non-headless so Cloudflare doesn't detect automation
     # (window appears briefly then closes)
+    return opts
 
-    driver = webdriver.Chrome(options=opts)
+
+def scrape_with_selenium():
+    """Use a non-headless Chrome session (with copied profile) to submit the 90-day form on checkee.info.
+    Bypasses Cloudflare because a real Chrome profile with valid cookies is used."""
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import Select as SeleniumSelect
+
+    driver = webdriver.Chrome(options=build_chrome_options())
     try:
         driver.get("https://www.checkee.info/main.php?sortby=clear_date")
         time.sleep(5)
@@ -252,10 +258,21 @@ def scrape():
     return merged
 
 
-def scrape_monthly():
-    """Scrape homepage monthly case table; return trailing 12 months."""
-    r = fetch_with_retry("https://www.checkee.info/")
-    soup = BeautifulSoup(r.text, "html.parser")
+def monthly_dict_from_rows(rows):
+    rows.sort(key=lambda x: x["month"])
+    rows = rows[-120:]
+    return {
+        "months":   [r["month"]    for r in rows],
+        "pending":  [r["pending"]  for r in rows],
+        "clear":    [r["clear"]    for r in rows],
+        "reject":   [r["reject"]   for r in rows],
+        "total":    [r["total"]    for r in rows],
+        "avg_wait": [r["avg_wait"] for r in rows],
+    }
+
+
+def parse_monthly_rows(soup):
+    """Extract homepage monthly case rows from a BeautifulSoup page."""
     rows = []
     for tr in soup.find_all("tr"):
         cells = tr.find_all("td")
@@ -273,16 +290,41 @@ def scrape_monthly():
             except ValueError:
                 continue
             rows.append({"month": month, "pending": pending, "clear": clear, "reject": reject, "total": total, "avg_wait": avg_wait})
-    rows.sort(key=lambda x: x["month"])
-    rows = rows[-120:]
-    return {
-        "months":   [r["month"]    for r in rows],
-        "pending":  [r["pending"]  for r in rows],
-        "clear":    [r["clear"]    for r in rows],
-        "reject":   [r["reject"]   for r in rows],
-        "total":    [r["total"]    for r in rows],
-        "avg_wait": [r["avg_wait"] for r in rows],
-    }
+    return rows
+
+
+def scrape_monthly_with_selenium():
+    """Scrape homepage monthly case table using local Chrome cookies."""
+    from selenium import webdriver
+
+    driver = webdriver.Chrome(options=build_chrome_options())
+    try:
+        driver.get("https://www.checkee.info/")
+        for _ in range(3):
+            time.sleep(5)
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            rows = parse_monthly_rows(soup)
+            if rows:
+                print(f"Selenium monthly rows: {len(rows)}")
+                return monthly_dict_from_rows(rows)
+        print(f"WARNING: Selenium monthly scrape returned 0 rows from {driver.current_url}")
+    finally:
+        driver.quit()
+    return monthly_dict_from_rows([])
+
+
+def scrape_monthly():
+    """Scrape homepage monthly case table; return trailing 120 months."""
+    try:
+        r = fetch_with_retry("https://www.checkee.info/")
+        soup = BeautifulSoup(r.text, "html.parser")
+        rows = parse_monthly_rows(soup)
+        if rows:
+            return monthly_dict_from_rows(rows)
+        print("WARNING: monthly requests scrape returned 0 rows; trying Selenium")
+    except Exception as e:
+        print(f"WARNING: monthly requests scrape failed ({e}); trying Selenium")
+    return scrape_monthly_with_selenium()
 
 
 def build_data(records, monthly):
