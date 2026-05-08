@@ -478,28 +478,29 @@ def generate_html(data, updated):
   .updated a {{ color: #94a3b8; }}
   .summary-stats {{ text-align: center; font-size: 12px; color: #64748b; margin-bottom: 14px; }}
   .filter-bar {{
-    display: flex; justify-content: center; align-items: center; gap: 6px;
-    flex-wrap: wrap; max-width: 1100px; margin: 0 auto 12px; padding: 0 16px;
+    display: flex; justify-content: center; align-items: end; gap: 10px;
+    flex-wrap: wrap; max-width: 1100px; margin: 0 auto 14px; padding: 0 16px;
   }}
-  .filter-label {{ font-size: 11px; color: #64748b; font-weight: 600; margin-right: 2px; }}
-  .visa-btn {{
-    border: 1px solid #d8d6cf; background: #fff; color: #475569;
-    border-radius: 16px; padding: 4px 10px; font-size: 11px;
-    font-weight: 600; cursor: pointer; user-select: none;
+  .filter-control {{ display: flex; flex-direction: column; gap: 4px; min-width: 150px; }}
+  .filter-label {{ font-size: 11px; color: #64748b; font-weight: 600; }}
+  .filter-select, .filter-summary {{
+    min-height: 32px; border: 1px solid #d8d6cf; background: #fff; color: #1e293b;
+    border-radius: 6px; padding: 5px 9px; font-size: 12px; font-weight: 500;
   }}
-  .visa-btn:hover {{ background: #f1f5f9; }}
-  .visa-btn.active {{ background: #1e293b; color: #fff; border-color: #1e293b; }}
-  .visa-btn.group {{ border-color: #cbd5e1; }}
-  .visa-separator {{ width: 1px; height: 18px; background: #e2e8f0; margin: 0 2px; }}
-  .filter-pill {{
-    display: none; margin: 0 auto 14px; width: fit-content;
-    background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
-    border-radius: 20px; padding: 4px 14px; font-size: 12px;
-    cursor: pointer; user-select: none; font-weight: 500;
+  .filter-select {{ cursor: pointer; }}
+  .filter-dropdown {{ position: relative; }}
+  .filter-dropdown summary {{ list-style: none; cursor: pointer; user-select: none; min-width: 220px; }}
+  .filter-dropdown summary::-webkit-details-marker {{ display: none; }}
+  .filter-summary::after {{ content: '▾'; float: right; color: #94a3b8; margin-left: 12px; }}
+  .filter-menu {{
+    position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 220px;
+    max-height: 260px; overflow-y: auto; background: #fff; border: 1px solid #d8d6cf;
+    border-radius: 8px; box-shadow: 0 10px 24px rgba(15,23,42,0.14); padding: 6px;
   }}
-  .filter-pill.active {{ background: #d97706; color: #fff; border-color: #d97706; }}
-  .filter-pill:hover {{ background: #fde68a; }}
-  .filter-pill.active:hover {{ background: #b45309; }}
+  .filter-option {{ display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 5px; font-size: 12px; cursor: pointer; }}
+  .filter-option:hover {{ background: #f1f5f9; }}
+  .filter-option input {{ margin: 0; }}
+  .filter-option.all {{ font-weight: 700; border-bottom: 1px solid #e2e8f0; margin-bottom: 4px; padding-bottom: 8px; }}
   .grid  {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; align-items: start; }}
   .monthly-wrap {{ padding: 0 20px 24px; max-width: 1500px; margin: 0 auto; }}
   .card {{ background: #fff; border-radius: 8px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); }}
@@ -537,10 +538,22 @@ def generate_html(data, updated):
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
 <p class="updated">Last updated: {updated} &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <p class="summary-stats">{summary_html}</p>
-<div class="filter-bar" id="visaFilterBar"></div>
-<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
-  <div id="filterPill" class="filter-pill"></div>
-  <div id="entryPill"  class="filter-pill"></div>
+<div class="filter-bar" id="filterBar">
+  <div class="filter-control">
+    <span class="filter-label">Visa type</span>
+    <details class="filter-dropdown" id="visaDropdown">
+      <summary class="filter-summary" id="visaSummary">All visa types</summary>
+      <div class="filter-menu" id="visaMenu"></div>
+    </details>
+  </div>
+  <label class="filter-control">
+    <span class="filter-label">Entry type</span>
+    <select class="filter-select" id="entrySelect"></select>
+  </label>
+  <label class="filter-control">
+    <span class="filter-label">Consulate</span>
+    <select class="filter-select" id="consulateSelect"></select>
+  </label>
 </div>
 <div class="grid" id="grid"></div>
 <div class="monthly-wrap" id="monthlyWrap"></div>
@@ -571,76 +584,100 @@ const palette = ['#54A06B','#D4635A','#9DB0C8','#A07840','#A86878','#4E6A7A','#7
 }});
 
 const grid = document.getElementById('grid');
-const visaFilterBar = document.getElementById('visaFilterBar');
-const filterPill = document.getElementById('filterPill');
-const entryPill  = document.getElementById('entryPill');
+const visaDropdown = document.getElementById('visaDropdown');
+const visaMenu = document.getElementById('visaMenu');
+const visaSummary = document.getElementById('visaSummary');
+const entrySelect = document.getElementById('entrySelect');
+const consulateSelect = document.getElementById('consulateSelect');
 const chartInstances = {{}};
 let activeConsulate = null;
 let activeEntryType = null;
 let activeVisas = null;
 
-const visaGroups = [
-  {{ label: 'B', visas: ['B1','B2'] }},
-  {{ label: 'F', visas: ['F1','F2'] }},
-  {{ label: 'H', visas: ['H1','H4'] }},
-  {{ label: 'J', visas: ['J1','J2'] }},
-  {{ label: 'L', visas: ['L1','L2'] }},
-  {{ label: 'O', visas: ['O1'] }},
-];
-const allVisaTypes = [...new Set(groups.flatMap(g => g.visas))];
+const visaOrder = groups.flatMap(g => g.visas);
+const allVisaTypes = visaOrder.filter(v => DATA.raw_records.some(r => r[1] === v));
+const allEntryTypes = [...new Set(DATA.raw_records.map(r => r[6]).filter(Boolean))].sort();
+const allConsulates = [...new Set(DATA.raw_records.map(r => r[5]).filter(Boolean))].sort();
 
-function sameVisaSet(a, b) {{
-  if (!a || !b || a.size !== b.size) return false;
-  return [...a].every(v => b.has(v));
+function fillSelect(select, allLabel, values) {{
+  select.innerHTML = '';
+  const allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = allLabel;
+  select.appendChild(allOpt);
+  values.forEach(v => {{
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  }});
+}}
+
+function syncFilterControls() {{
+  entrySelect.value = activeEntryType || '';
+  consulateSelect.value = activeConsulate || '';
+  const selected = activeVisas ? [...activeVisas] : [];
+  if (!selected.length) visaSummary.textContent = 'All visa types';
+  else if (selected.length === 1) visaSummary.textContent = selected[0];
+  else visaSummary.textContent = selected.join(', ');
+  visaMenu.querySelectorAll('input[data-visa]').forEach(input => {{
+    input.checked = !activeVisas || activeVisas.has(input.dataset.visa);
+  }});
+  const allInput = visaMenu.querySelector('input[data-all]');
+  if (allInput) allInput.checked = !activeVisas;
+}}
+
+function applyFilters() {{
+  syncFilterControls();
+  updateAllCharts(getFilteredRecords());
 }}
 
 function setVisaFilter(visas) {{
   activeVisas = visas && visas.length ? new Set(visas) : null;
-  renderVisaFilter();
-  updateAllCharts(getFilteredRecords());
+  applyFilters();
 }}
 
-function renderVisaFilter() {{
-  visaFilterBar.innerHTML = '';
-  const label = document.createElement('span');
-  label.className = 'filter-label';
-  label.textContent = 'Visa';
-  visaFilterBar.appendChild(label);
+function setEntryFilter(entryType) {{
+  activeEntryType = entryType || null;
+  applyFilters();
+}}
 
-  const allBtn = document.createElement('button');
-  allBtn.type = 'button';
-  allBtn.className = 'visa-btn group' + (!activeVisas ? ' active' : '');
-  allBtn.textContent = 'All';
-  allBtn.addEventListener('click', () => setVisaFilter(null));
-  visaFilterBar.appendChild(allBtn);
+function setConsulateFilter(consulate) {{
+  activeConsulate = consulate || null;
+  applyFilters();
+}}
 
-  visaGroups.forEach(g => {{
-    const groupSet = new Set(g.visas);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'visa-btn group' + (sameVisaSet(activeVisas, groupSet) ? ' active' : '');
-    btn.textContent = g.label;
-    btn.addEventListener('click', () => setVisaFilter(sameVisaSet(activeVisas, groupSet) ? null : g.visas));
-    visaFilterBar.appendChild(btn);
-  }});
+function renderFilters() {{
+  fillSelect(entrySelect, 'All entry types', allEntryTypes);
+  fillSelect(consulateSelect, 'All consulates', allConsulates);
 
-  const sep = document.createElement('span');
-  sep.className = 'visa-separator';
-  visaFilterBar.appendChild(sep);
+  visaMenu.innerHTML = '';
+  const allLabel = document.createElement('label');
+  allLabel.className = 'filter-option all';
+  allLabel.innerHTML = '<input type="checkbox" data-all> <span>All visa types</span>';
+  allLabel.querySelector('input').addEventListener('change', () => setVisaFilter(null));
+  visaMenu.appendChild(allLabel);
 
   allVisaTypes.forEach(v => {{
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'visa-btn' + (activeVisas && activeVisas.has(v) ? ' active' : '');
-    btn.textContent = v;
-    btn.addEventListener('click', () => {{
-      const next = new Set(activeVisas || []);
-      if (next.has(v)) next.delete(v);
-      else next.add(v);
-      setVisaFilter(next.size ? [...next] : null);
+    const label = document.createElement('label');
+    label.className = 'filter-option';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.dataset.visa = v;
+    input.addEventListener('change', () => {{
+      const checked = [...visaMenu.querySelectorAll('input[data-visa]:checked')].map(el => el.dataset.visa);
+      setVisaFilter(checked.length === allVisaTypes.length ? null : checked);
     }});
-    visaFilterBar.appendChild(btn);
+    const text = document.createElement('span');
+    text.textContent = v;
+    label.appendChild(input);
+    label.appendChild(text);
+    visaMenu.appendChild(label);
   }});
+
+  entrySelect.addEventListener('change', () => setEntryFilter(entrySelect.value));
+  consulateSelect.addEventListener('change', () => setConsulateFilter(consulateSelect.value));
+  syncFilterControls();
 }}
 
 function getFilteredRecords() {{
@@ -787,6 +824,9 @@ function updateAllCharts(records) {{
     const types = Object.keys(es).sort();
     wc.data.labels = types;
     wc.data.datasets[0].data = types.map(et => es[et].count);
+    wc.data.datasets[0].backgroundColor = types.map((et, i) =>
+      activeEntryType && et !== activeEntryType ? (['#4E79A733','#F28E2B33'])[i % 2] : (['#4E79A7CC','#F28E2BCC'])[i % 2]
+    );
     wc.data.datasets[1].data = types.map(et => es[et].avg_days);
     wc.update();
   }}
@@ -910,21 +950,7 @@ grid.appendChild(waitCard);
       onClick: (evt, elements) => {{
         if (!elements.length) return;
         const et = types[elements[0].index];
-        if (activeEntryType === et) {{
-          activeEntryType = null;
-          entryPill.style.display = 'none';
-          entryPill.classList.remove('active');
-          chartInstances['cWait'].data.datasets[0].backgroundColor = ['#4E79A7CC', '#F28E2BCC'];
-        }} else {{
-          activeEntryType = et;
-          entryPill.textContent = '✕  ' + et;
-          entryPill.style.display = 'block';
-          entryPill.classList.add('active');
-          chartInstances['cWait'].data.datasets[0].backgroundColor =
-            types.map((t, i) => t === et ? (['#4E79A7CC','#F28E2BCC'])[i] : (['#4E79A733','#F28E2B33'])[i]);
-        }}
-        chartInstances['cWait'].update();
-        updateAllCharts(getFilteredRecords());
+        setEntryFilter(activeEntryType === et ? null : et);
       }},
       plugins: {{
         legend: {{ position: 'top', labels: {{ font: {{ size: 11 }}, padding: 6 }} }},
@@ -1078,22 +1104,7 @@ chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
     onClick: (evt, elements) => {{
       if (!elements.length) return;
       const consulate = consLabels[elements[0].index];
-      if (activeConsulate === consulate) {{
-        activeConsulate = null;
-        filterPill.style.display = 'none';
-        filterPill.classList.remove('active');
-        chartInstances['cEntry'].data.datasets[0].backgroundColor = consColors.map(c => c + 'CC');
-        chartInstances['cEntry'].update();
-      }} else {{
-        activeConsulate = consulate;
-        filterPill.textContent = '✕  ' + consulate;
-        filterPill.style.display = 'block';
-        filterPill.classList.add('active');
-        chartInstances['cEntry'].data.datasets[0].backgroundColor =
-          consLabels.map((l, i) => l === consulate ? consColors[i] : consColors[i] + '33');
-        chartInstances['cEntry'].update();
-      }}
-      updateAllCharts(getFilteredRecords());
+      setConsulateFilter(activeConsulate === consulate ? null : consulate);
     }},
     plugins: {{
       legend: {{ display: false }},
@@ -1119,28 +1130,6 @@ chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
       }},
     }},
   }}
-}});
-
-// Clicking the consulate pill resets that filter
-filterPill.addEventListener('click', () => {{
-  if (!activeConsulate) return;
-  activeConsulate = null;
-  filterPill.style.display = 'none';
-  filterPill.classList.remove('active');
-  chartInstances['cEntry'].data.datasets[0].backgroundColor = consColors.map(c => c + 'CC');
-  chartInstances['cEntry'].update();
-  updateAllCharts(getFilteredRecords());
-}});
-
-// Clicking the entry pill resets that filter
-entryPill.addEventListener('click', () => {{
-  if (!activeEntryType) return;
-  activeEntryType = null;
-  entryPill.style.display = 'none';
-  entryPill.classList.remove('active');
-  chartInstances['cWait'].data.datasets[0].backgroundColor = ['#4E79A7CC', '#F28E2BCC'];
-  chartInstances['cWait'].update();
-  updateAllCharts(getFilteredRecords());
 }});
 
 // ── Monthly overview chart ────────────────────────────────────────────────────
@@ -1396,7 +1385,7 @@ function renderTable(records) {{
 }}
 
 let _currentTableRecords = DATA.raw_records;
-renderVisaFilter();
+renderFilters();
 updateAllCharts(DATA.raw_records);
 </script>
 </body>
