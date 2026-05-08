@@ -616,15 +616,16 @@ function fillSelect(select, allLabel, values) {{
 function syncFilterControls() {{
   entrySelect.value = activeEntryType || '';
   consulateSelect.value = activeConsulate || '';
-  const selected = activeVisas ? [...activeVisas] : [];
-  if (!selected.length) visaSummary.textContent = 'All visa types';
+  const selected = activeVisas === null ? [] : [...activeVisas];
+  if (activeVisas === null) visaSummary.textContent = 'All visa types';
+  else if (!selected.length) visaSummary.textContent = 'None selected';
   else if (selected.length === 1) visaSummary.textContent = selected[0];
   else visaSummary.textContent = selected.join(', ');
   visaMenu.querySelectorAll('input[data-visa]').forEach(input => {{
     input.checked = !activeVisas || activeVisas.has(input.dataset.visa);
   }});
   const allInput = visaMenu.querySelector('input[data-all]');
-  if (allInput) allInput.checked = !activeVisas;
+  if (allInput) allInput.checked = activeVisas === null;
 }}
 
 function applyFilters() {{
@@ -633,7 +634,7 @@ function applyFilters() {{
 }}
 
 function setVisaFilter(visas) {{
-  activeVisas = visas && visas.length ? new Set(visas) : null;
+  activeVisas = visas === null ? null : new Set(visas || []);
   applyFilters();
 }}
 
