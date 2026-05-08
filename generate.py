@@ -477,6 +477,20 @@ def generate_html(data, updated):
   .updated {{ text-align: center; font-size: 11px; color: #94a3b8; margin-bottom: 4px; }}
   .updated a {{ color: #94a3b8; }}
   .summary-stats {{ text-align: center; font-size: 12px; color: #64748b; margin-bottom: 14px; }}
+  .filter-bar {{
+    display: flex; justify-content: center; align-items: center; gap: 6px;
+    flex-wrap: wrap; max-width: 1100px; margin: 0 auto 12px; padding: 0 16px;
+  }}
+  .filter-label {{ font-size: 11px; color: #64748b; font-weight: 600; margin-right: 2px; }}
+  .visa-btn {{
+    border: 1px solid #d8d6cf; background: #fff; color: #475569;
+    border-radius: 16px; padding: 4px 10px; font-size: 11px;
+    font-weight: 600; cursor: pointer; user-select: none;
+  }}
+  .visa-btn:hover {{ background: #f1f5f9; }}
+  .visa-btn.active {{ background: #1e293b; color: #fff; border-color: #1e293b; }}
+  .visa-btn.group {{ border-color: #cbd5e1; }}
+  .visa-separator {{ width: 1px; height: 18px; background: #e2e8f0; margin: 0 2px; }}
   .filter-pill {{
     display: none; margin: 0 auto 14px; width: fit-content;
     background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
@@ -523,6 +537,7 @@ def generate_html(data, updated):
 <h1>Daily Completed Cases by Visa Category (Last 90 Days)</h1>
 <p class="updated">Last updated: {updated} &nbsp;·&nbsp; Source: <a href="https://www.checkee.info" target="_blank">checkee.info</a></p>
 <p class="summary-stats">{summary_html}</p>
+<div class="filter-bar" id="visaFilterBar"></div>
 <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
   <div id="filterPill" class="filter-pill"></div>
   <div id="entryPill"  class="filter-pill"></div>
@@ -556,14 +571,81 @@ const palette = ['#54A06B','#D4635A','#9DB0C8','#A07840','#A86878','#4E6A7A','#7
 }});
 
 const grid = document.getElementById('grid');
+const visaFilterBar = document.getElementById('visaFilterBar');
 const filterPill = document.getElementById('filterPill');
 const entryPill  = document.getElementById('entryPill');
 const chartInstances = {{}};
 let activeConsulate = null;
 let activeEntryType = null;
+let activeVisas = null;
+
+const visaGroups = [
+  {{ label: 'B', visas: ['B1','B2'] }},
+  {{ label: 'F', visas: ['F1','F2'] }},
+  {{ label: 'H', visas: ['H1','H4'] }},
+  {{ label: 'J', visas: ['J1','J2'] }},
+  {{ label: 'L', visas: ['L1','L2'] }},
+  {{ label: 'O', visas: ['O1'] }},
+];
+const allVisaTypes = [...new Set(groups.flatMap(g => g.visas))];
+
+function sameVisaSet(a, b) {{
+  if (!a || !b || a.size !== b.size) return false;
+  return [...a].every(v => b.has(v));
+}}
+
+function setVisaFilter(visas) {{
+  activeVisas = visas && visas.length ? new Set(visas) : null;
+  renderVisaFilter();
+  updateAllCharts(getFilteredRecords());
+}}
+
+function renderVisaFilter() {{
+  visaFilterBar.innerHTML = '';
+  const label = document.createElement('span');
+  label.className = 'filter-label';
+  label.textContent = 'Visa';
+  visaFilterBar.appendChild(label);
+
+  const allBtn = document.createElement('button');
+  allBtn.type = 'button';
+  allBtn.className = 'visa-btn group' + (!activeVisas ? ' active' : '');
+  allBtn.textContent = 'All';
+  allBtn.addEventListener('click', () => setVisaFilter(null));
+  visaFilterBar.appendChild(allBtn);
+
+  visaGroups.forEach(g => {{
+    const groupSet = new Set(g.visas);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'visa-btn group' + (sameVisaSet(activeVisas, groupSet) ? ' active' : '');
+    btn.textContent = g.label;
+    btn.addEventListener('click', () => setVisaFilter(sameVisaSet(activeVisas, groupSet) ? null : g.visas));
+    visaFilterBar.appendChild(btn);
+  }});
+
+  const sep = document.createElement('span');
+  sep.className = 'visa-separator';
+  visaFilterBar.appendChild(sep);
+
+  allVisaTypes.forEach(v => {{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'visa-btn' + (activeVisas && activeVisas.has(v) ? ' active' : '');
+    btn.textContent = v;
+    btn.addEventListener('click', () => {{
+      const next = new Set(activeVisas || []);
+      if (next.has(v)) next.delete(v);
+      else next.add(v);
+      setVisaFilter(next.size ? [...next] : null);
+    }});
+    visaFilterBar.appendChild(btn);
+  }});
+}}
 
 function getFilteredRecords() {{
   return DATA.raw_records.filter(r =>
+    (!activeVisas || activeVisas.has(r[1])) &&
     (!activeConsulate || r[5] === activeConsulate) &&
     (!activeEntryType  || r[6] === activeEntryType)
   );
@@ -585,6 +667,8 @@ function buildAgg(records) {{
   const cscMap = {{}};
   const compMap = {{}};
   const entryDays = {{}};  // entry_type -> [days]
+  const consulateCounts = {{}};
+  const consulateDays = {{}};
 
   for (const [date, visa, days, status, checkDate, consulate, entry] of records) {{
     dateSets.add(date);
@@ -603,6 +687,11 @@ function buildAgg(records) {{
     if (entry) {{
       entryDays[entry] = entryDays[entry] || [];
       entryDays[entry].push(days);
+    }}
+    if (consulate) {{
+      consulateCounts[consulate] = (consulateCounts[consulate] || 0) + 1;
+      consulateDays[consulate] = consulateDays[consulate] || [];
+      consulateDays[consulate].push(days);
     }}
   }}
 
@@ -658,7 +747,13 @@ function buildAgg(records) {{
     ])),
   }};
 
-  return {{ dates, counts: countsMap, stats, entry_summary, check_dist, complete_dist }};
+  const consulate_median = Object.fromEntries(Object.entries(consulateDays).map(([k, dl]) => [k, jsMedian(dl)]));
+
+  return {{
+    dates, counts: countsMap, stats, entry_summary, check_dist, complete_dist,
+    consulate_dist: consulateCounts,
+    consulate_median: consulate_median,
+  }};
 }}
 
 // ── Refresh all charts from a (possibly filtered) record list ─────────────────
@@ -721,6 +816,7 @@ function updateAllCharts(records) {{
       '<span style="color:#aaa;font-size:10px">stacked bars = status by issue date &nbsp;·&nbsp; <b style="color:#1e293b">- - -</b> avg ' + dynAvg + ' cases/day</span>';
     cdc.update();
   }}
+  updateConsulateChart(agg.consulate_dist, agg.consulate_median);
   _currentTableRecords = records;
   renderTable(records);
 }}
@@ -859,7 +955,7 @@ grid.appendChild(waitCard);
 // ── Card 7: issue date distribution (appended before waitCard) ────────────────
 const cdCard = document.createElement('div');
 cdCard.className = 'card';
-cdCard.innerHTML = '<h3>Issue Date Distribution (All Visa Types)</h3><div style="position:relative;height:200px"><canvas id="cCD"></canvas></div>' +
+cdCard.innerHTML = '<h3>Issue Date Distribution</h3><div style="position:relative;height:200px"><canvas id="cCD"></canvas></div>' +
   '<div class="stats" id="cdStats"></div>';
 grid.insertBefore(cdCard, waitCard);
 
@@ -909,19 +1005,41 @@ chartInstances['cCD'] = new Chart(document.getElementById('cCD'), {{
 const entryCard = document.createElement('div');
 entryCard.className = 'card';
 entryCard.innerHTML =
-  '<h3>Consulate Distribution (All Visa Types)</h3>' +
+  '<h3>Consulate Distribution</h3>' +
   '<div style="position:relative;height:200px"><canvas id="cEntry"></canvas></div>' +
   '<div class="stats"><span style="color:#aaa;font-size:10px">click a bar · click again to reset</span></div>';
 grid.appendChild(entryCard);
 
-const consDist   = DATA.consulate_dist || {{}};
-const consAllLabels = Object.keys(consDist).sort((a, b) => consDist[b] - consDist[a]);
 const TOP_N = 10;
-const consLabels = consAllLabels.slice(0, TOP_N);
-const consValues = consLabels.map(k => consDist[k]);
-const consTotal  = Object.values(consDist).reduce((a, b) => a + b, 0);
-const consColors = consLabels.map(() => '#4E79A7');
-const consColorsActive = consLabels.map(() => '#4E79A7');
+let consLabels = [];
+let consValues = [];
+let consTotal = 0;
+let consColors = [];
+let currentConsMedians = {{}};
+
+function setConsulateSeries(consDist, medians) {{
+  const dist = consDist || {{}};
+  currentConsMedians = medians || {{}};
+  const labels = Object.keys(dist).sort((a, b) => dist[b] - dist[a]).slice(0, TOP_N);
+  consLabels = labels;
+  consValues = labels.map(k => dist[k]);
+  consTotal = Object.values(dist).reduce((a, b) => a + b, 0);
+  consColors = labels.map(() => '#4E79A7');
+}}
+
+function updateConsulateChart(consDist, medians) {{
+  if (!chartInstances['cEntry']) return;
+  setConsulateSeries(consDist, medians);
+  chartInstances['cEntry'].data.labels = consLabels;
+  chartInstances['cEntry'].data.datasets[0].data = consValues;
+  chartInstances['cEntry'].data.datasets[0].backgroundColor = consLabels.map((l, i) =>
+    activeConsulate && l !== activeConsulate ? consColors[i] + '33' : consColors[i] + 'CC'
+  );
+  chartInstances['cEntry'].data.datasets[0].hoverBackgroundColor = consColors;
+  chartInstances['cEntry'].update();
+}}
+
+setConsulateSeries(DATA.consulate_dist, DATA.consulate_median);
 
 chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
   type: 'bar',
@@ -929,7 +1047,7 @@ chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
     id: 'medianLabels',
     afterDatasetDraw(chart) {{
       const {{ctx, data}} = chart;
-      const medians = DATA.consulate_median || {{}};
+      const medians = currentConsMedians || {{}};
       ctx.save();
       ctx.font = '9px Inter, Arial, sans-serif';
       ctx.fillStyle = '#94a3b8';
@@ -983,7 +1101,7 @@ chartInstances['cEntry'] = new Chart(document.getElementById('cEntry'), {{
         callbacks: {{
           label: (ctx) => {{
             const pct = ((ctx.parsed.x / consTotal) * 100).toFixed(1);
-            const med = (DATA.consulate_median || {{}})[consLabels[ctx.dataIndex]];
+            const med = (currentConsMedians || {{}})[consLabels[ctx.dataIndex]];
             return ctx.parsed.x + ' cases (' + pct + '%)' + (med !== undefined ? ' · median ' + med + 'd wait' : '');
           }}
         }}
@@ -1278,6 +1396,7 @@ function renderTable(records) {{
 }}
 
 let _currentTableRecords = DATA.raw_records;
+renderVisaFilter();
 updateAllCharts(DATA.raw_records);
 </script>
 </body>
