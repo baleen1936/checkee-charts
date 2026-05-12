@@ -481,8 +481,7 @@ def generate_html(data, updated):
     display: flex; justify-content: center; align-items: end; gap: 10px;
     flex-wrap: wrap; max-width: 1100px; margin: 0 auto 14px; padding: 0 16px;
   }}
-  .filter-control {{ display: flex; flex-direction: column; gap: 4px; min-width: 150px; }}
-  .filter-label {{ font-size: 11px; color: #64748b; font-weight: 600; }}
+  .filter-control {{ display: flex; min-width: 150px; }}
   .filter-select, .filter-summary {{
     min-height: 32px; border: 1px solid #d8d6cf; background: #fff; color: #1e293b;
     border-radius: 6px; padding: 5px 9px; font-size: 12px; font-weight: 500;
@@ -540,18 +539,15 @@ def generate_html(data, updated):
 <p class="summary-stats">{summary_html}</p>
 <div class="filter-bar" id="filterBar">
   <div class="filter-control">
-    <span class="filter-label">Visa type</span>
     <details class="filter-dropdown" id="visaDropdown">
       <summary class="filter-summary" id="visaSummary">All visa types</summary>
       <div class="filter-menu" id="visaMenu"></div>
     </details>
   </div>
   <label class="filter-control">
-    <span class="filter-label">Entry type</span>
     <select class="filter-select" id="entrySelect"></select>
   </label>
   <label class="filter-control">
-    <span class="filter-label">Consulate</span>
     <select class="filter-select" id="consulateSelect"></select>
   </label>
 </div>
@@ -656,7 +652,7 @@ function renderFilters() {{
   const allLabel = document.createElement('label');
   allLabel.className = 'filter-option all';
   allLabel.innerHTML = '<input type="checkbox" data-all> <span>All visa types</span>';
-  allLabel.querySelector('input').addEventListener('change', () => setVisaFilter(null));
+  allLabel.querySelector('input').addEventListener('change', (evt) => setVisaFilter(evt.target.checked ? null : []));
   visaMenu.appendChild(allLabel);
 
   allVisaTypes.forEach(v => {{
