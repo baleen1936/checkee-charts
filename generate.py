@@ -175,6 +175,79 @@ def save_debug_html(name, html):
         print(f"WARNING: could not save debug page ({exc})")
 
 
+def page_looks_blocked(html, title=""):
+    """Detect common Cloudflare/security interstitial pages."""
+    haystack = f"{title}\n{html[:200000]}".lower()
+    markers = (
+        "just a moment",
+        "performing security verification",
+        "cloudflare",
+        "verify you are human",
+        "verifying you are not a bot",
+        "checking your browser",
+    )
+    return any(marker in haystack for marker in markers)
+
+
+def wait_for_dispdate_selects(driver, by, timeout=90, interval=3):
+    """Wait until the checkee filter form is available, allowing CF to finish first."""
+    deadline = time.time() + timeout
+    next_log = 0
+    while True:
+        selects = driver.find_elements(by.NAME, "dispdate")
+        if len(selects) >= 2:
+            return selects
+
+        page_source = driver.page_source
+        title = driver.title
+        now = time.time()
+        if now >= deadline:
+            save_debug_html("last-selenium-before-submit.html", page_source)
+            raise RuntimeError(f"Expected 2 dispdate selects, got {len(selects)}; title={title!r}")
+
+        if now >= next_log:
+            if page_looks_blocked(page_source, title):
+                print(f"Waiting for security verification before submit... title={title!r}")
+            else:
+                print(f"Waiting for checkee filters before submit... title={title!r}")
+            next_log = now + 12
+        time.sleep(interval)
+
+
+def wait_for_records_after_submit(driver, timeout=120, interval=3):
+    """Wait until the submitted result page contains parseable table rows."""
+    deadline = time.time() + timeout
+    next_log = 0
+    last_records = []
+    last_soup = None
+    last_source = ""
+
+    while True:
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, "html.parser")
+        records = parse_rows(soup)
+        if records:
+            return records, page_source, soup
+
+        last_records = records
+        last_soup = soup
+        last_source = page_source
+
+        title = driver.title
+        now = time.time()
+        if now >= deadline:
+            return last_records, last_source, last_soup
+
+        if now >= next_log:
+            if page_looks_blocked(page_source, title):
+                print(f"Waiting for security verification after submit... title={title!r}")
+            else:
+                diag = describe_table_rows(soup)
+                print(f"Waiting for result rows... title={title!r}; row cell counts={diag['cell_counts']}")
+            next_log = now + 12
+        time.sleep(interval)
+
+
 def load_cached_records(html_path="index.html"):
     """Extract raw_records from the existing index.html DATA blob."""
     try:
@@ -253,13 +326,9 @@ def scrape_with_selenium(force_refresh_profile=False):
     driver = webdriver.Chrome(options=build_chrome_options(force_refresh=force_refresh_profile))
     try:
         driver.get("https://www.checkee.info/main.php?sortby=clear_date")
-        time.sleep(5)
 
         # Select the second dispdate dropdown (Last 7/30/90 Days)
-        selects = driver.find_elements(By.NAME, "dispdate")
-        if len(selects) < 2:
-            raise RuntimeError(f"Expected 2 dispdate selects, got {len(selects)}")
-
+        selects = wait_for_dispdate_selects(driver, By)
         sel90 = SeleniumSelect(selects[1])
         target_val = None
         for opt in sel90.options:
@@ -278,12 +347,8 @@ def scrape_with_selenium(force_refresh_profile=False):
         else:
             selects[1].find_element(By.XPATH, "./ancestor::form").submit()
 
-        time.sleep(8)
         print(f"Landed on: {driver.current_url}")
-
-        page_source = driver.page_source
-        soup = BeautifulSoup(page_source, "html.parser")
-        records = parse_rows(soup)
+        records, page_source, soup = wait_for_records_after_submit(driver)
         if not records:
             save_debug_html("last-selenium-page.html", page_source)
             print(f"Page title: {driver.title}")
