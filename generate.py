@@ -10,6 +10,7 @@ import re
 import shutil
 import statistics
 import time
+from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 CHROME_PROFILE_COPY = "/tmp/chrome-profile-copy"
@@ -72,6 +73,8 @@ def fetch_with_retry(url, retries=6, backoff=15):
 def parse_rows(soup):
     """Extract records from a BeautifulSoup page containing the checkee table."""
     records = []
+    known_visas = {"B1", "B2", "F1", "F2", "H1", "H4", "J1", "J2", "L1", "L2", "O1"}
+    known_statuses = {"Pending", "Clear", "Reject", "Approved", "Issued", "Refused"}
     for row in soup.find_all("tr"):
         cells = row.find_all("td")
         if len(cells) == 11:
@@ -100,7 +103,76 @@ def parse_rows(soup):
                     "major": major,
                     "details": details,
                 })
+            continue
+
+        texts = [c.get_text(" ", strip=True) for c in cells]
+        if len(texts) < 8:
+            continue
+
+        visa_idx = next((i for i, t in enumerate(texts) if t in known_visas), None)
+        status_idx = next((i for i, t in enumerate(texts) if t in known_statuses), None)
+        date_items = [(i, t) for i, t in enumerate(texts) if re.match(r"^\d{4}-\d{2}-\d{2}$", t)]
+        int_items = [(i, t) for i, t in enumerate(texts) if re.match(r"^\d+$", t)]
+        if visa_idx is None or status_idx is None or len(date_items) < 2 or not int_items:
+            continue
+
+        days_idx, days_text = int_items[-1]
+        try:
+            days = int(days_text)
+        except ValueError:
+            continue
+        if not (0 <= days < 2000):
+            continue
+
+        check_date = date_items[-2][1]
+        date = date_items[-1][1]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            continue
+
+        entry = texts[visa_idx + 1] if visa_idx + 1 < len(texts) else ""
+        consulate = texts[visa_idx + 2] if visa_idx + 2 < len(texts) else ""
+        major = texts[visa_idx + 3] if visa_idx + 3 < len(texts) else ""
+        details_link = cells[-1].find("a") if cells else None
+        details = details_link.get("title", "").strip() if details_link else ""
+        records.append({
+            "date": date,
+            "visa": texts[visa_idx],
+            "days": days,
+            "status": texts[status_idx],
+            "check_date": check_date,
+            "entry": entry,
+            "consulate": consulate,
+            "major": major,
+            "details": details,
+        })
     return records
+
+
+def describe_table_rows(soup, limit=8):
+    """Return compact diagnostics for why parse_rows found no records."""
+    rows = []
+    counts = defaultdict(int)
+    for row in soup.find_all("tr"):
+        cells = [c.get_text(" ", strip=True) for c in row.find_all("td")]
+        if cells:
+            counts[len(cells)] += 1
+            if len(rows) < limit:
+                rows.append(cells[:12])
+    return {
+        "cell_counts": dict(sorted(counts.items())),
+        "samples": rows,
+    }
+
+
+def save_debug_html(name, html):
+    try:
+        log_dir = Path("logs")
+        log_dir.mkdir(exist_ok=True)
+        path = log_dir / name
+        path.write_text(html, encoding="utf-8")
+        print(f"Saved debug page: {path}")
+    except Exception as exc:
+        print(f"WARNING: could not save debug page ({exc})")
 
 
 def load_cached_records(html_path="index.html"):
@@ -209,8 +281,16 @@ def scrape_with_selenium(force_refresh_profile=False):
         time.sleep(8)
         print(f"Landed on: {driver.current_url}")
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+        page_source = driver.page_source
+        soup = BeautifulSoup(page_source, "html.parser")
         records = parse_rows(soup)
+        if not records:
+            save_debug_html("last-selenium-page.html", page_source)
+            print(f"Page title: {driver.title}")
+            diag = describe_table_rows(soup)
+            print(f"Row cell counts: {diag['cell_counts']}")
+            for i, cells in enumerate(diag["samples"], 1):
+                print(f"Row sample {i}: {cells}")
         return records
     finally:
         driver.quit()
