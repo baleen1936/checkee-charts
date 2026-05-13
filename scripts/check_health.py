@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import socket
 import sys
 import tempfile
@@ -29,11 +30,22 @@ def check_dns(host: str) -> bool:
     return True
 
 
-def check_https(url: str) -> bool:
+def get_proxy_url() -> str | None:
+    return (
+        os.environ.get("CHECKEE_PROXY")
+        or os.environ.get("HTTPS_PROXY")
+        or os.environ.get("https_proxy")
+        or os.environ.get("HTTP_PROXY")
+        or os.environ.get("http_proxy")
+    )
+
+
+def check_https(url: str, proxy_url: str | None = None) -> bool:
     try:
         import requests
 
-        response = requests.get(url, timeout=8)
+        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+        response = requests.get(url, timeout=8, proxies=proxies)
     except Exception as exc:
         fail(f"https {url}", str(exc))
         return False
@@ -87,13 +99,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-selenium", action="store_true")
     args = parser.parse_args()
+    proxy_url = get_proxy_url()
 
-    checks = [
-        check_dns("www.checkee.info"),
-        check_dns("github.com"),
-        check_https("https://www.checkee.info/"),
+    checks = []
+    if proxy_url:
+        ok("proxy", proxy_url)
+    else:
+        checks.extend([
+            check_dns("www.checkee.info"),
+            check_dns("github.com"),
+        ])
+    checks.extend([
+        check_https("https://www.checkee.info/", proxy_url),
         check_port_bind("127.0.0.1"),
-    ]
+    ])
     try:
         checks.append(check_port_bind("::1"))
     except OSError:
